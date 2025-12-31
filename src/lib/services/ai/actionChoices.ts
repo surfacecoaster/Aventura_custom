@@ -67,6 +67,9 @@ export class ActionChoicesService {
 
     // Build context from world state
     const currentLoc = worldState.currentLocation;
+    // Get the protagonist (user's character) - the one with relationship === 'self'
+    const protagonist = worldState.characters.find(c => c.relationship === 'self');
+    // Get NPCs (other characters, not the user's character)
     const activeCharacters = worldState.characters.filter(c => c.status === 'active' && c.relationship !== 'self');
     const inventoryItems = worldState.items.filter(i => i.location === 'inventory');
     const activeQuests = worldState.storyBeats.filter(b => b.status === 'active' || b.status === 'pending');
@@ -88,7 +91,16 @@ export class ActionChoicesService {
       povInstruction = 'Write actions in second person imperative or first person (e.g., "Examine the door", "I ask the merchant about...")';
     }
 
-    const prompt = `Based on the current story moment, generate 3-4 RPG-style action choices for the player.
+    // Get protagonist name for the prompt
+    const protagonistName = protagonist?.name || 'the player';
+    const protagonistDesc = protagonist?.description ? ` (${protagonist.description})` : '';
+
+    const prompt = `Based on the current story moment, generate 3-4 RPG-style action choices.
+
+## CRITICAL: Who is the Player?
+The USER is playing as ${protagonistName}${protagonistDesc}. This is the USER'S persona/character - it IS the user, not a separate NPC.
+When generating action choices, you are suggesting what THE USER might want to do next as their character ${protagonistName}.
+Do NOT generate actions for ${protagonistName} as if they were a separate character - these are suggestions for the user's next move.
 
 ## Current Narrative
 """
@@ -100,20 +112,20 @@ ${recentContext}
 
 ## Current Scene
 Location: ${currentLoc?.name || 'Unknown'}${currentLoc?.description ? ` - ${currentLoc.description}` : ''}
-Characters Present: ${activeCharacters.length > 0 ? activeCharacters.map(c => c.name).join(', ') : 'None mentioned'}
-Inventory: ${inventoryItems.length > 0 ? inventoryItems.map(i => i.name).join(', ') : 'Empty'}
+NPCs Present: ${activeCharacters.length > 0 ? activeCharacters.map(c => c.name).join(', ') : 'None'}
+${protagonistName}'s Inventory: ${inventoryItems.length > 0 ? inventoryItems.map(i => i.name).join(', ') : 'Empty'}
 Active Quests: ${activeQuests.length > 0 ? activeQuests.map(q => q.title).join(', ') : 'None'}
 
 ## Your Task
-Generate 3-4 distinct action choices that make sense given the current moment. Think like an RPG:
+Generate 3-4 distinct action choices for THE USER (playing as ${protagonistName}). Think like an RPG:
 - Include at least one physical action (examine, take, use, attack, etc.)
-- If NPCs are present, include a dialogue option
+- If NPCs are present, include a dialogue option for the user to talk to them
 - If there's an obvious next step or quest objective, include it
 - Include an exploratory or cautious option
 
 ${povInstruction}
 
-Keep each choice SHORT (under 10 words ideally, max 15). They should be clear, specific actions.
+Keep each choice SHORT (under 10 words ideally, max 15). They should be clear, specific actions the USER can take.
 
 ## Response Format (JSON only)
 {
@@ -136,7 +148,7 @@ Types:
         messages: [
           {
             role: 'system',
-            content: 'You are an RPG game master generating action choices for a player. Generate clear, concise action options that fit the current narrative moment. Always respond with valid JSON only.',
+            content: `You are an RPG game master generating action choices for a player. The player has a character/persona that represents THEM in the story - when you generate choices, these are suggestions for what the PLAYER (the real person) might want their character to do next. Generate clear, concise action options that fit the current narrative moment. Always respond with valid JSON only.`,
           },
           { role: 'user', content: prompt },
         ],
