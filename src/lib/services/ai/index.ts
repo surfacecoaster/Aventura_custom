@@ -61,6 +61,11 @@ class AIService {
       { role: 'system', content: systemPrompt },
     ];
 
+    // Add priming user message to establish narrator role
+    const tense = story?.settings?.tense || 'present';
+    const primingMessage = this.buildPrimingMessage(mode, pov, tense);
+    messages.push({ role: 'user', content: primingMessage });
+
     // Add recent entries as conversation history
     const recentEntries = entries.slice(-20); // Keep last 20 entries for context
     for (const entry of recentEntries) {
@@ -169,6 +174,11 @@ class AIService {
       { role: 'system', content: systemPrompt },
     ];
 
+    // Add priming user message to establish narrator role
+    const tense = story?.settings?.tense || 'present';
+    const primingMessage = this.buildPrimingMessage(mode, pov, tense);
+    messages.push({ role: 'user', content: primingMessage });
+
     // Add recent entries as conversation history
     const recentEntries = entries.slice(-20);
     for (const entry of recentEntries) {
@@ -194,6 +204,9 @@ class AIService {
       maxTokens: settings.apiSettings.maxTokens,
       enableThinking: settings.apiSettings.enableThinking,
     });
+
+    // Debug: Log message roles to verify correct format
+    log('Message roles:', messages.map(m => ({ role: m.role, contentPreview: m.content.substring(0, 100) + '...' })));
 
     let chunkCount = 0;
     let totalContent = 0;
@@ -381,6 +394,47 @@ class AIService {
     return result;
   }
 
+  /**
+   * Build a priming user message to establish the narrator role.
+   * This helps models that expect user-first conversation format.
+   */
+  private buildPrimingMessage(
+    mode: 'adventure' | 'creative-writing',
+    pov?: 'first' | 'second' | 'third',
+    tense: 'past' | 'present' = 'present'
+  ): string {
+    const tenseInstruction = tense === 'past' ? 'past tense' : 'present tense';
+
+    let povInstruction: string;
+    if (pov === 'third') {
+      povInstruction = 'third person (they/the character name)';
+    } else {
+      povInstruction = 'second person (you/your)';
+    }
+
+    if (mode === 'creative-writing') {
+      return `You are the narrator of this collaborative story. Write in ${tenseInstruction}, ${povInstruction}.
+
+Your role:
+- Describe the world, NPCs, and events
+- React to my story directions with vivid prose
+- NEVER write dialogue, actions, or thoughts for the protagonist
+- When I describe what happens, narrate the scene without controlling the main character
+
+I will provide story directions. You narrate everything except the protagonist's direct actions and words.`;
+    } else {
+      return `You are the narrator of this interactive adventure. Write in ${tenseInstruction}, ${povInstruction}.
+
+Your role:
+- Describe what I see, hear, and experience as I explore
+- Control all NPCs and the environment
+- NEVER write my dialogue, decisions, or inner thoughts
+- When I say "I do X", describe the results using "you" (e.g., "I open the door" → "You push open the heavy door...")
+
+I am the player. You narrate the world around me. Begin when I take my first action.`;
+    }
+  }
+
   private buildSystemPrompt(
     worldState: WorldState,
     templateId?: string | null,
@@ -507,13 +561,23 @@ Do NOT use "you" to refer to the player character.
     }
 
     // Final instruction - reinforcing the core rules
+    const povInstruction = pov === 'third'
+      ? 'Use THIRD PERSON (they/the protagonist) to describe what the character does.'
+      : 'Use SECOND PERSON (you/your) to describe what the player does. If the player writes "I do X", respond with "You do X".';
+
     basePrompt += `\n\n<response_instruction>
 Respond to the player's action with an engaging narrative continuation:
 1. Show the immediate results of their action through sensory detail
 2. Bring NPCs and environment to life with their own reactions
 3. Create new tension, opportunity, or discovery
 
-Remember: NEVER write for the player. End with a natural opening for action, not a question.
+CRITICAL VOICE RULES:
+- ${povInstruction}
+- You are the NARRATOR describing what happens TO the player, not the player themselves.
+- NEVER use "I/me/my" as if you are the player character.
+- NEVER write the player's dialogue, thoughts, or decisions.
+
+End with a natural opening for action, not a direct question.
 </response_instruction>`;
 
     return basePrompt;

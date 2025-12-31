@@ -3,7 +3,7 @@
   import { story } from '$lib/stores/story.svelte';
   import { settings } from '$lib/stores/settings.svelte';
   import { aiService } from '$lib/services/ai';
-  import { Send, Wand2, MessageSquare, Brain, Sparkles, Feather } from 'lucide-svelte';
+  import { Send, Wand2, MessageSquare, Brain, Sparkles, Feather, RefreshCw, X } from 'lucide-svelte';
   import type { Chapter } from '$lib/types';
   import type { StorySuggestion } from '$lib/services/ai/suggestions';
   import Suggestions from './Suggestions.svelte';
@@ -27,6 +27,16 @@
 
   // In creative writing mode, show different input style
   const isCreativeMode = $derived(story.storyMode === 'creative-writing');
+
+  // Register retry callback with UI store so StoryEntry can trigger it
+  $effect(() => {
+    log('Registering retry callback');
+    ui.setRetryCallback(handleRetry);
+    return () => {
+      log('Unregistering retry callback');
+      ui.setRetryCallback(null);
+    };
+  });
 
   /**
    * Generate story direction suggestions for creative writing mode.
@@ -169,6 +179,147 @@
     story: '',
   };
 
+  /**
+   * Core generation logic - used by both handleSubmit and retry
+   */
+  async function generateResponse(userActionEntryId: string, userActionContent: string) {
+    log('Starting AI generation...', { userActionEntryId, hasCurrentStory: !!story.currentStory });
+
+    // Ensure we have a current story
+    if (!story.currentStory) {
+      log('No current story loaded, cannot generate');
+      return;
+    }
+
+    ui.setGenerating(true);
+    ui.startStreaming();
+    ui.clearGenerationError(); // Clear any previous error
+
+    try {
+      // Build world state for AI context
+      const worldState = {
+        characters: story.characters,
+        locations: story.locations,
+        items: story.items,
+        storyBeats: story.storyBeats,
+        currentLocation: story.currentLocation,
+      };
+
+      log('World state built', {
+        characters: worldState.characters.length,
+        locations: worldState.locations.length,
+        items: worldState.items.length,
+        storyBeats: worldState.storyBeats.length,
+      });
+
+      let fullResponse = '';
+      let chunkCount = 0;
+
+      // Capture current story reference for use after streaming
+      const currentStoryRef = story.currentStory;
+
+      // Use streaming response
+      log('Starting stream iteration...');
+      for await (const chunk of aiService.streamResponse(story.entries, worldState, currentStoryRef)) {
+        chunkCount++;
+        if (chunk.content) {
+          fullResponse += chunk.content;
+          ui.appendStreamContent(chunk.content);
+
+          // Emit streaming event
+          eventBus.emit<ResponseStreamingEvent>({
+            type: 'ResponseStreaming',
+            chunk: chunk.content,
+            accumulated: fullResponse,
+          });
+        }
+
+        if (chunk.done) {
+          log('Stream done signal received');
+          break;
+        }
+      }
+
+      log('Stream complete', { chunkCount, responseLength: fullResponse.length });
+
+      // Save the complete response as a story entry
+      if (fullResponse.trim()) {
+        log('Saving narration entry...', { contentLength: fullResponse.length });
+        const narrationEntry = await story.addEntry('narration', fullResponse);
+        log('Narration entry saved', { entryId: narrationEntry.id, entriesCount: story.entries.length });
+
+        // Emit NarrativeResponse event
+        emitNarrativeResponse(narrationEntry.id, fullResponse);
+
+        // Phase 3: Classify the response to extract world state changes
+        log('Starting classification phase...');
+        try {
+          const classificationResult = await aiService.classifyResponse(
+            fullResponse,
+            userActionContent,
+            worldState,
+            currentStoryRef
+          );
+
+          log('Classification complete', {
+            newCharacters: classificationResult.entryUpdates.newCharacters.length,
+            newLocations: classificationResult.entryUpdates.newLocations.length,
+            newItems: classificationResult.entryUpdates.newItems.length,
+            newStoryBeats: classificationResult.entryUpdates.newStoryBeats.length,
+          });
+
+          // Emit ClassificationComplete event
+          eventBus.emit<ClassificationCompleteEvent>({
+            type: 'ClassificationComplete',
+            messageId: narrationEntry.id,
+            result: classificationResult,
+          });
+
+          // Phase 4: Apply classification results to world state
+          await story.applyClassificationResult(classificationResult);
+          log('World state updated from classification');
+        } catch (classifyError) {
+          // Classification failure shouldn't break the main flow
+          log('Classification failed (non-fatal)', classifyError);
+          console.warn('World state classification failed:', classifyError);
+        }
+
+        // Phase 5: Check if auto-summarization is needed (background, non-blocking)
+        if (story.memoryConfig.autoSummarize) {
+          checkAutoSummarize().catch(err => {
+            log('Auto-summarize check failed (non-fatal)', err);
+          });
+        }
+
+        // Phase 6: Generate suggestions for creative writing mode (background, non-blocking)
+        if (isCreativeMode) {
+          refreshSuggestions().catch(err => {
+            log('Suggestions generation failed (non-fatal)', err);
+          });
+        }
+      } else {
+        log('No response content to save (fullResponse was empty or whitespace)');
+      }
+    } catch (error) {
+      log('Generation failed', error);
+      console.error('Generation failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate response. Please try again.';
+      const errorEntry = await story.addEntry('system', `Generation failed: ${errorMessage}`);
+
+      // Store error state for retry
+      ui.setGenerationError({
+        message: errorMessage,
+        errorEntryId: errorEntry.id,
+        userActionEntryId: userActionEntryId,
+        timestamp: Date.now(),
+      });
+    } finally {
+      ui.endStreaming();
+      ui.setGenerating(false);
+      log('Generation complete, UI reset');
+    }
+  }
+
   async function handleSubmit() {
     log('handleSubmit called', { inputValue: inputValue.trim(), actionType, isCreativeMode, isGenerating: ui.isGenerating });
 
@@ -176,6 +327,9 @@
       log('Submit blocked', { emptyInput: !inputValue.trim(), isGenerating: ui.isGenerating });
       return;
     }
+
+    // Clear any previous error
+    ui.clearGenerationError();
 
     // In creative writing mode, use raw input as direction
     // In adventure mode, apply action prefixes/suffixes
@@ -185,8 +339,8 @@
     log('Action content built', { content, mode: isCreativeMode ? 'creative' : 'adventure' });
 
     // Add user action to story
-    await story.addEntry('user_action', content);
-    log('User action added to story');
+    const userActionEntry = await story.addEntry('user_action', content);
+    log('User action added to story', { entryId: userActionEntry.id });
 
     // Emit UserInput event
     emitUserInput(content, isCreativeMode ? 'direction' : actionType);
@@ -196,122 +350,50 @@
 
     // Generate AI response with streaming
     if (settings.hasApiKey) {
-      log('Starting AI generation...');
-      ui.setGenerating(true);
-      ui.startStreaming();
-
-      try {
-        // Build world state for AI context
-        const worldState = {
-          characters: story.characters,
-          locations: story.locations,
-          items: story.items,
-          storyBeats: story.storyBeats,
-          currentLocation: story.currentLocation,
-        };
-
-        log('World state built', {
-          characters: worldState.characters.length,
-          locations: worldState.locations.length,
-          items: worldState.items.length,
-          storyBeats: worldState.storyBeats.length,
-        });
-
-        let fullResponse = '';
-        let chunkCount = 0;
-
-        // Use streaming response
-        log('Starting stream iteration...');
-        for await (const chunk of aiService.streamResponse(story.entries, worldState, story.currentStory)) {
-          chunkCount++;
-          if (chunk.content) {
-            fullResponse += chunk.content;
-            ui.appendStreamContent(chunk.content);
-
-            // Emit streaming event
-            eventBus.emit<ResponseStreamingEvent>({
-              type: 'ResponseStreaming',
-              chunk: chunk.content,
-              accumulated: fullResponse,
-            });
-          }
-
-          if (chunk.done) {
-            log('Stream done signal received');
-            break;
-          }
-        }
-
-        log('Stream complete', { chunkCount, responseLength: fullResponse.length });
-
-        // Save the complete response as a story entry
-        if (fullResponse.trim()) {
-          const narrationEntry = await story.addEntry('narration', fullResponse);
-          log('Narration entry saved');
-
-          // Emit NarrativeResponse event
-          emitNarrativeResponse(narrationEntry.id, fullResponse);
-
-          // Phase 3: Classify the response to extract world state changes
-          log('Starting classification phase...');
-          try {
-            const classificationResult = await aiService.classifyResponse(
-              fullResponse,
-              content, // The user action
-              worldState,
-              story.currentStory
-            );
-
-            log('Classification complete', {
-              newCharacters: classificationResult.entryUpdates.newCharacters.length,
-              newLocations: classificationResult.entryUpdates.newLocations.length,
-              newItems: classificationResult.entryUpdates.newItems.length,
-              newStoryBeats: classificationResult.entryUpdates.newStoryBeats.length,
-            });
-
-            // Emit ClassificationComplete event
-            eventBus.emit<ClassificationCompleteEvent>({
-              type: 'ClassificationComplete',
-              messageId: narrationEntry.id,
-              result: classificationResult,
-            });
-
-            // Phase 4: Apply classification results to world state
-            await story.applyClassificationResult(classificationResult);
-            log('World state updated from classification');
-          } catch (classifyError) {
-            // Classification failure shouldn't break the main flow
-            log('Classification failed (non-fatal)', classifyError);
-            console.warn('World state classification failed:', classifyError);
-          }
-
-          // Phase 5: Check if auto-summarization is needed (background, non-blocking)
-          if (story.memoryConfig.autoSummarize) {
-            checkAutoSummarize().catch(err => {
-              log('Auto-summarize check failed (non-fatal)', err);
-            });
-          }
-
-          // Phase 6: Generate suggestions for creative writing mode (background, non-blocking)
-          if (isCreativeMode) {
-            refreshSuggestions().catch(err => {
-              log('Suggestions generation failed (non-fatal)', err);
-            });
-          }
-        }
-      } catch (error) {
-        log('Generation failed', error);
-        console.error('Generation failed:', error);
-        await story.addEntry('system', 'Failed to generate response. Please check your API settings.');
-      } finally {
-        ui.endStreaming();
-        ui.setGenerating(false);
-        log('Generation complete, UI reset');
-      }
+      await generateResponse(userActionEntry.id, content);
     } else {
       log('No API key configured');
       await story.addEntry('system', 'Please configure your OpenRouter API key in settings to enable AI generation.');
     }
+  }
+
+  /**
+   * Retry the last failed generation
+   */
+  async function handleRetry() {
+    log('handleRetry called', { hasError: !!ui.lastGenerationError, isGenerating: ui.isGenerating });
+
+    const error = ui.lastGenerationError;
+    if (!error || ui.isGenerating) {
+      log('handleRetry early return', { hasError: !!error, isGenerating: ui.isGenerating });
+      return;
+    }
+
+    log('Retrying generation', { errorEntryId: error.errorEntryId, userActionEntryId: error.userActionEntryId });
+
+    // Find the user action content before deleting the error
+    const userActionEntry = story.entries.find(e => e.id === error.userActionEntryId);
+    if (!userActionEntry) {
+      log('User action entry not found for retry');
+      ui.clearGenerationError();
+      return;
+    }
+
+    // Delete the error entry
+    await story.deleteEntry(error.errorEntryId);
+    ui.clearGenerationError();
+
+    // Retry generation with the same user action
+    if (settings.hasApiKey) {
+      await generateResponse(userActionEntry.id, userActionEntry.content);
+    }
+  }
+
+  /**
+   * Dismiss the error without retrying
+   */
+  function dismissError() {
+    ui.clearGenerationError();
   }
 
   function handleKeydown(event: KeyboardEvent) {
@@ -323,6 +405,31 @@
 </script>
 
 <div class="space-y-3">
+  <!-- Error retry banner -->
+  {#if ui.lastGenerationError && !ui.isGenerating}
+    <div class="flex items-center justify-between gap-3 rounded-lg bg-red-500/10 border border-red-500/30 p-3">
+      <div class="flex items-center gap-2 text-sm text-red-400">
+        <span>Generation failed. Would you like to try again?</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button
+          onclick={handleRetry}
+          class="btn flex items-center gap-1.5 text-sm bg-red-500/20 text-red-400 hover:bg-red-500/30"
+        >
+          <RefreshCw class="h-4 w-4" />
+          Retry
+        </button>
+        <button
+          onclick={dismissError}
+          class="p-1.5 rounded text-surface-400 hover:bg-surface-700 hover:text-surface-200"
+          title="Dismiss"
+        >
+          <X class="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  {/if}
+
   {#if isCreativeMode}
     <!-- Creative Writing Mode: Suggestions -->
     <Suggestions

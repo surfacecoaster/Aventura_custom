@@ -2,6 +2,7 @@
 
 export type StoryMode = 'adventure' | 'creative-writing';
 export type POV = 'first' | 'second' | 'third';
+export type Tense = 'past' | 'present';
 
 export interface Story {
   id: string;
@@ -30,6 +31,7 @@ export interface StorySettings {
   maxTokens?: number;
   systemPromptOverride?: string;
   pov?: POV;
+  tense?: Tense;
 }
 
 export interface StoryEntry {
