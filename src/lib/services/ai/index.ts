@@ -51,7 +51,8 @@ class AIService {
     const mode = story?.mode || 'adventure';
 
     // Build the system prompt with world state context
-    const systemPrompt = this.buildSystemPrompt(worldState, story?.templateId, undefined, mode);
+    const systemPromptOverride = story?.settings?.systemPromptOverride;
+    const systemPrompt = this.buildSystemPrompt(worldState, story?.templateId, undefined, mode, undefined, systemPromptOverride);
     log('System prompt built, length:', systemPrompt.length, 'mode:', mode);
 
     // Build conversation history
@@ -139,12 +140,14 @@ class AIService {
     }
 
     // Build the system prompt with world state context
+    const systemPromptOverride = story?.settings?.systemPromptOverride;
     const systemPrompt = this.buildSystemPrompt(
       worldState,
       story?.templateId,
       undefined,
       mode,
-      tieredContextBlock
+      tieredContextBlock,
+      systemPromptOverride
     );
     log('System prompt built, length:', systemPrompt.length, 'mode:', mode);
 
@@ -360,12 +363,16 @@ class AIService {
     templateId?: string | null,
     retrievedContext?: string,
     mode: 'adventure' | 'creative-writing' = 'adventure',
-    tieredContextBlock?: string
+    tieredContextBlock?: string,
+    systemPromptOverride?: string
   ): string {
-    // Get template-specific system prompt if available
+    // Use custom system prompt if provided (from wizard-generated stories)
     let basePrompt = '';
 
-    if (templateId) {
+    if (systemPromptOverride) {
+      basePrompt = systemPromptOverride;
+    } else if (templateId) {
+      // Get template-specific system prompt if available
       const template = BUILTIN_TEMPLATES.find(t => t.id === templateId);
       if (template?.systemPrompt) {
         basePrompt = template.systemPrompt;

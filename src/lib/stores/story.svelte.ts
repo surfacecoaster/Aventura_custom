@@ -749,6 +749,134 @@ class StoryStore {
       this.clearCurrentStory();
     }
   }
+
+  /**
+   * Create a new story from wizard data.
+   * This handles the full initialization from the setup wizard including
+   * dynamically generated settings, protagonist, characters, and opening scene.
+   */
+  async createStoryFromWizard(data: {
+    title: string;
+    genre: string;
+    mode: StoryMode;
+    settings: { pov: 'first' | 'second' | 'third' };
+    protagonist: Partial<Character>;
+    startingLocation: Partial<Location>;
+    initialItems: Partial<Item>[];
+    openingScene: string;
+    systemPrompt: string;
+    characters: Partial<Character>[];
+  }): Promise<Story> {
+    log('createStoryFromWizard called', {
+      title: data.title,
+      genre: data.genre,
+      mode: data.mode,
+      pov: data.settings.pov,
+    });
+
+    // Create the base story with custom system prompt stored in settings
+    const storyData = await database.createStory({
+      id: crypto.randomUUID(),
+      title: data.title,
+      description: null,
+      genre: data.genre,
+      templateId: 'wizard-generated',
+      mode: data.mode,
+      settings: {
+        pov: data.settings.pov,
+        systemPromptOverride: data.systemPrompt,
+      },
+      memoryConfig: DEFAULT_MEMORY_CONFIG,
+    });
+
+    this.allStories = [storyData, ...this.allStories];
+    const storyId = storyData.id;
+
+    // Add protagonist
+    if (data.protagonist.name) {
+      const protagonist: Character = {
+        id: crypto.randomUUID(),
+        storyId,
+        name: data.protagonist.name,
+        description: data.protagonist.description ?? null,
+        relationship: 'self',
+        traits: data.protagonist.traits ?? [],
+        status: 'active',
+        metadata: { source: 'wizard' },
+      };
+      await database.addCharacter(protagonist);
+      log('Added protagonist:', protagonist.name);
+    }
+
+    // Add starting location
+    if (data.startingLocation.name) {
+      const location: Location = {
+        id: crypto.randomUUID(),
+        storyId,
+        name: data.startingLocation.name,
+        description: data.startingLocation.description ?? null,
+        visited: true,
+        current: true,
+        connections: [],
+        metadata: { source: 'wizard' },
+      };
+      await database.addLocation(location);
+      log('Added starting location:', location.name);
+    }
+
+    // Add initial items
+    for (const itemData of data.initialItems) {
+      if (!itemData.name) continue;
+      const item: Item = {
+        id: crypto.randomUUID(),
+        storyId,
+        name: itemData.name,
+        description: itemData.description ?? null,
+        quantity: itemData.quantity ?? 1,
+        equipped: itemData.equipped ?? false,
+        location: itemData.location ?? 'inventory',
+        metadata: { source: 'wizard' },
+      };
+      await database.addItem(item);
+    }
+
+    // Add supporting characters
+    for (const charData of data.characters) {
+      if (!charData.name) continue;
+      const character: Character = {
+        id: crypto.randomUUID(),
+        storyId,
+        name: charData.name,
+        description: charData.description ?? null,
+        relationship: charData.relationship ?? null,
+        traits: charData.traits ?? [],
+        status: 'active',
+        metadata: { source: 'wizard' },
+      };
+      await database.addCharacter(character);
+      log('Added supporting character:', character.name);
+    }
+
+    // Add opening scene as first narration entry
+    if (data.openingScene) {
+      await database.addStoryEntry({
+        id: crypto.randomUUID(),
+        storyId,
+        type: 'narration',
+        content: data.openingScene,
+        parentId: null,
+        position: 0,
+        metadata: { source: 'wizard' },
+      });
+      log('Added opening scene');
+    }
+
+    // Emit event
+    eventBus.emit<StoryCreatedEvent>({ type: 'StoryCreated', storyId, mode: data.mode });
+
+    log('Story created from wizard:', storyId);
+    return storyData;
+  }
 }
 
 export const story = new StoryStore();

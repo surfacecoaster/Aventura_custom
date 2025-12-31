@@ -1,0 +1,820 @@
+<script lang="ts">
+  import { story } from '$lib/stores/story.svelte';
+  import { ui } from '$lib/stores/ui.svelte';
+  import { settings } from '$lib/stores/settings.svelte';
+  import {
+    scenarioService,
+    type WizardData,
+    type Genre,
+    type ExpandedSetting,
+    type GeneratedProtagonist,
+    type GeneratedCharacter,
+    type GeneratedOpening,
+    type Tense,
+  } from '$lib/services/ai/scenario';
+  import type { StoryMode, POV } from '$lib/types';
+  import {
+    X,
+    ChevronLeft,
+    ChevronRight,
+    Loader2,
+    Sword,
+    Feather,
+    Wand2,
+    Rocket,
+    Building,
+    Skull,
+    Search,
+    Heart,
+    Sparkles,
+    Globe,
+    User,
+    Users,
+    PenTool,
+    Play,
+    RefreshCw,
+  } from 'lucide-svelte';
+
+  interface Props {
+    onClose: () => void;
+  }
+
+  let { onClose }: Props = $props();
+
+  // Wizard state
+  let currentStep = $state(1);
+  const totalSteps = 7;
+
+  // Step 1: Mode
+  let selectedMode = $state<StoryMode>('adventure');
+
+  // Step 2: Genre
+  let selectedGenre = $state<Genre>('fantasy');
+  let customGenre = $state('');
+
+  // Step 3: Setting
+  let settingSeed = $state('');
+  let expandedSetting = $state<ExpandedSetting | null>(null);
+  let isExpandingSetting = $state(false);
+  let settingError = $state<string | null>(null);
+
+  // Step 4: Protagonist/Characters
+  let protagonist = $state<GeneratedProtagonist | null>(null);
+  let supportingCharacters = $state<GeneratedCharacter[]>([]);
+  let isGeneratingProtagonist = $state(false);
+  let isGeneratingCharacters = $state(false);
+  let protagonistError = $state<string | null>(null);
+
+  // Step 5: Writing Style
+  let selectedPOV = $state<POV>('second');
+  let selectedTense = $state<Tense>('present');
+  let tone = $state('immersive and engaging');
+
+  // Step 6: Import (optional)
+  // TODO: Implement lorebook/character card import
+
+  // Step 7: Generate Opening
+  let storyTitle = $state('');
+  let generatedOpening = $state<GeneratedOpening | null>(null);
+  let streamedOpening = $state('');
+  let isGeneratingOpening = $state(false);
+  let openingError = $state<string | null>(null);
+
+  // Check if API key is configured
+  const hasApiKey = $derived(settings.hasApiKey);
+
+  // Genre options with icons
+  const genres: { id: Genre; name: string; icon: typeof Wand2; description: string }[] = [
+    { id: 'fantasy', name: 'Fantasy', icon: Wand2, description: 'Magic, quests, and mythical creatures' },
+    { id: 'scifi', name: 'Sci-Fi', icon: Rocket, description: 'Space, technology, and the future' },
+    { id: 'modern', name: 'Modern', icon: Building, description: 'Contemporary realistic settings' },
+    { id: 'horror', name: 'Horror', icon: Skull, description: 'Fear, suspense, and the unknown' },
+    { id: 'mystery', name: 'Mystery', icon: Search, description: 'Puzzles, clues, and investigations' },
+    { id: 'romance', name: 'Romance', icon: Heart, description: 'Love, relationships, and emotion' },
+    { id: 'custom', name: 'Custom', icon: Sparkles, description: 'Define your own genre' },
+  ];
+
+  // POV options
+  const povOptions: { id: POV; label: string; example: string }[] = [
+    { id: 'first', label: '1st Person', example: 'I walk into the room...' },
+    { id: 'second', label: '2nd Person', example: 'You walk into the room...' },
+    { id: 'third', label: '3rd Person', example: 'They walk into the room...' },
+  ];
+
+  // Tense options
+  const tenseOptions: { id: Tense; label: string; example: string }[] = [
+    { id: 'present', label: 'Present', example: 'You see a door.' },
+    { id: 'past', label: 'Past', example: 'You saw a door.' },
+  ];
+
+  // Tone presets
+  const tonePresets = [
+    'Immersive and engaging',
+    'Dark and atmospheric',
+    'Light and whimsical',
+    'Gritty and realistic',
+    'Poetic and lyrical',
+    'Action-packed and fast-paced',
+  ];
+
+  // Step validation
+  function canProceed(): boolean {
+    switch (currentStep) {
+      case 1: return true; // Mode always selected
+      case 2: return selectedGenre !== 'custom' || customGenre.trim().length > 0;
+      case 3: return settingSeed.trim().length > 0;
+      case 4: return true; // Protagonist is optional
+      case 5: return true; // Style always has defaults
+      case 6: return true; // Import is optional
+      case 7: return storyTitle.trim().length > 0;
+      default: return false;
+    }
+  }
+
+  // Navigation
+  function nextStep() {
+    if (currentStep < totalSteps && canProceed()) {
+      currentStep++;
+    }
+  }
+
+  function prevStep() {
+    if (currentStep > 1) {
+      currentStep--;
+    }
+  }
+
+  // Step 3: Expand Setting
+  async function expandSetting() {
+    if (!settingSeed.trim() || isExpandingSetting) return;
+
+    isExpandingSetting = true;
+    settingError = null;
+
+    try {
+      expandedSetting = await scenarioService.expandSetting(
+        settingSeed,
+        selectedGenre,
+        customGenre || undefined
+      );
+    } catch (error) {
+      console.error('Failed to expand setting:', error);
+      settingError = error instanceof Error ? error.message : 'Failed to expand setting';
+    } finally {
+      isExpandingSetting = false;
+    }
+  }
+
+  // Step 4: Generate Protagonist
+  async function generateProtagonist() {
+    if (!expandedSetting || isGeneratingProtagonist) return;
+
+    isGeneratingProtagonist = true;
+    protagonistError = null;
+
+    try {
+      protagonist = await scenarioService.generateProtagonist(
+        expandedSetting,
+        selectedGenre,
+        selectedMode,
+        selectedPOV,
+        customGenre || undefined
+      );
+    } catch (error) {
+      console.error('Failed to generate protagonist:', error);
+      protagonistError = error instanceof Error ? error.message : 'Failed to generate protagonist';
+    } finally {
+      isGeneratingProtagonist = false;
+    }
+  }
+
+  // Step 4: Generate Supporting Characters (Creative Mode)
+  async function generateCharacters() {
+    if (!expandedSetting || !protagonist || isGeneratingCharacters) return;
+
+    isGeneratingCharacters = true;
+
+    try {
+      supportingCharacters = await scenarioService.generateCharacters(
+        expandedSetting,
+        protagonist,
+        selectedGenre,
+        3,
+        customGenre || undefined
+      );
+    } catch (error) {
+      console.error('Failed to generate characters:', error);
+    } finally {
+      isGeneratingCharacters = false;
+    }
+  }
+
+  // Step 7: Generate Opening
+  async function generateOpening() {
+    if (isGeneratingOpening) return;
+
+    isGeneratingOpening = true;
+    openingError = null;
+    streamedOpening = '';
+
+    const wizardData: WizardData = {
+      mode: selectedMode,
+      genre: selectedGenre,
+      customGenre: customGenre || undefined,
+      settingSeed,
+      expandedSetting: expandedSetting || undefined,
+      protagonist: protagonist || undefined,
+      characters: supportingCharacters.length > 0 ? supportingCharacters : undefined,
+      writingStyle: {
+        pov: selectedPOV,
+        tense: selectedTense,
+        tone,
+      },
+      title: storyTitle,
+    };
+
+    try {
+      // Stream the opening for real-time display
+      for await (const chunk of scenarioService.streamOpening(wizardData)) {
+        if (chunk.content) {
+          streamedOpening += chunk.content;
+        }
+        if (chunk.done) break;
+      }
+
+      // Get the full structured opening
+      generatedOpening = await scenarioService.generateOpening(wizardData);
+      // Use streamed content if available
+      if (streamedOpening.trim()) {
+        generatedOpening.scene = streamedOpening;
+      }
+    } catch (error) {
+      console.error('Failed to generate opening:', error);
+      openingError = error instanceof Error ? error.message : 'Failed to generate opening';
+    } finally {
+      isGeneratingOpening = false;
+    }
+  }
+
+  // Create Story
+  async function createStory() {
+    if (!storyTitle.trim()) return;
+
+    const wizardData: WizardData = {
+      mode: selectedMode,
+      genre: selectedGenre,
+      customGenre: customGenre || undefined,
+      settingSeed,
+      expandedSetting: expandedSetting || undefined,
+      protagonist: protagonist || undefined,
+      characters: supportingCharacters.length > 0 ? supportingCharacters : undefined,
+      writingStyle: {
+        pov: selectedPOV,
+        tense: selectedTense,
+        tone,
+      },
+      title: storyTitle,
+    };
+
+    // Generate opening if not already done
+    if (!generatedOpening) {
+      await generateOpening();
+    }
+
+    if (!generatedOpening) {
+      openingError = 'Failed to generate opening scene';
+      return;
+    }
+
+    // Prepare story data
+    const storyData = scenarioService.prepareStoryData(wizardData, generatedOpening);
+
+    // Create the story using the store
+    const newStory = await story.createStoryFromWizard(storyData);
+
+    // Load and navigate to the story
+    await story.loadStory(newStory.id);
+    ui.setActivePanel('story');
+    onClose();
+  }
+
+  // Step title
+  const stepTitles = [
+    'Choose Your Mode',
+    'Select a Genre',
+    'Describe Your Setting',
+    'Create Your Character',
+    'Writing Style',
+    'Import (Optional)',
+    'Generate Opening',
+  ];
+</script>
+
+<div
+  class="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+  role="dialog"
+  aria-modal="true"
+>
+  <div class="card w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+    <!-- Header -->
+    <div class="flex items-center justify-between border-b border-surface-700 pb-4 shrink-0">
+      <div>
+        <h2 class="text-xl font-semibold text-surface-100">Create New Story</h2>
+        <p class="text-sm text-surface-400">
+          Step {currentStep} of {totalSteps}: {stepTitles[currentStep - 1]}
+        </p>
+      </div>
+      <button
+        class="btn-ghost rounded-lg p-2 text-surface-400 hover:text-surface-100"
+        onclick={onClose}
+      >
+        <X class="h-5 w-5" />
+      </button>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="py-3 shrink-0">
+      <div class="flex gap-1">
+        {#each Array(totalSteps) as _, i}
+          <div
+            class="h-1.5 flex-1 rounded-full transition-colors"
+            class:bg-primary-500={i < currentStep}
+            class:bg-surface-700={i >= currentStep}
+          ></div>
+        {/each}
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="flex-1 overflow-y-auto py-4 min-h-0">
+      {#if !hasApiKey}
+        <!-- API Key Warning -->
+        <div class="flex flex-col items-center justify-center py-8 text-center">
+          <div class="rounded-full bg-amber-500/20 p-4 mb-4">
+            <Sparkles class="h-8 w-8 text-amber-400" />
+          </div>
+          <h3 class="text-lg font-semibold text-surface-100 mb-2">API Key Required</h3>
+          <p class="text-surface-400 mb-4 max-w-md">
+            The setup wizard uses AI to dynamically generate your story world.
+            Please configure your OpenRouter API key in settings first.
+          </p>
+          <button
+            class="btn btn-primary"
+            onclick={() => { ui.openSettings(); onClose(); }}
+          >
+            Open Settings
+          </button>
+        </div>
+      {:else if currentStep === 1}
+        <!-- Step 1: Mode Selection -->
+        <div class="space-y-4">
+          <p class="text-surface-400">How do you want to experience your story?</p>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <button
+              class="card p-6 text-left transition-all hover:border-primary-500/50"
+              class:ring-2={selectedMode === 'adventure'}
+              class:ring-primary-500={selectedMode === 'adventure'}
+              onclick={() => selectedMode = 'adventure'}
+            >
+              <div class="flex items-center gap-4 mb-3">
+                <div class="rounded-lg bg-primary-900/50 p-3">
+                  <Sword class="h-6 w-6 text-primary-400" />
+                </div>
+                <span class="text-lg font-semibold text-surface-100">Adventure Mode</span>
+              </div>
+              <p class="text-sm text-surface-400">
+                <strong>You are the protagonist.</strong> Explore the world, interact with characters,
+                and make choices that shape your story. The AI narrates the consequences of your actions.
+              </p>
+            </button>
+            <button
+              class="card p-6 text-left transition-all hover:border-secondary-500/50"
+              class:ring-2={selectedMode === 'creative-writing'}
+              class:ring-secondary-500={selectedMode === 'creative-writing'}
+              onclick={() => selectedMode = 'creative-writing'}
+            >
+              <div class="flex items-center gap-4 mb-3">
+                <div class="rounded-lg bg-secondary-900/50 p-3">
+                  <Feather class="h-6 w-6 text-secondary-400" />
+                </div>
+                <span class="text-lg font-semibold text-surface-100">Creative Writing</span>
+              </div>
+              <p class="text-sm text-surface-400">
+                <strong>You are the author.</strong> Direct the story and craft the narrative.
+                The AI collaborates with you to write prose following your creative vision.
+              </p>
+            </button>
+          </div>
+        </div>
+
+      {:else if currentStep === 2}
+        <!-- Step 2: Genre Selection -->
+        <div class="space-y-4">
+          <p class="text-surface-400">What kind of story do you want to tell?</p>
+          <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {#each genres as genre}
+              {@const Icon = genre.icon}
+              <button
+                class="card p-4 text-left transition-all hover:border-accent-500/50"
+                class:ring-2={selectedGenre === genre.id}
+                class:ring-accent-500={selectedGenre === genre.id}
+                onclick={() => selectedGenre = genre.id}
+              >
+                <div class="flex items-center gap-3 mb-2">
+                  <div class="rounded-lg bg-surface-700 p-2">
+                    <Icon class="h-5 w-5 text-accent-400" />
+                  </div>
+                  <span class="font-medium text-surface-100">{genre.name}</span>
+                </div>
+                <p class="text-xs text-surface-400">{genre.description}</p>
+              </button>
+            {/each}
+          </div>
+          {#if selectedGenre === 'custom'}
+            <div class="mt-4">
+              <label class="mb-2 block text-sm font-medium text-surface-300">
+                Describe your genre
+              </label>
+              <input
+                type="text"
+                bind:value={customGenre}
+                placeholder="e.g., Steampunk Western, Cosmic Horror, Slice-of-Life Fantasy..."
+                class="input"
+              />
+            </div>
+          {/if}
+        </div>
+
+      {:else if currentStep === 3}
+        <!-- Step 3: Setting -->
+        <div class="space-y-4">
+          <p class="text-surface-400">
+            Describe your world in a few sentences. The AI will expand it into a rich setting.
+          </p>
+          <div>
+            <label class="mb-2 block text-sm font-medium text-surface-300">
+              Setting Seed
+            </label>
+            <textarea
+              bind:value={settingSeed}
+              placeholder="e.g., A kingdom where music is magic, and bards are the most powerful beings. An ancient evil stirs in the Silent Lands, where no song has been heard for a thousand years..."
+              class="input min-h-[100px] resize-none"
+              rows="4"
+            ></textarea>
+          </div>
+
+          {#if settingSeed.trim().length > 0}
+            <button
+              class="btn btn-secondary flex items-center gap-2"
+              onclick={expandSetting}
+              disabled={isExpandingSetting}
+            >
+              {#if isExpandingSetting}
+                <Loader2 class="h-4 w-4 animate-spin" />
+                Expanding...
+              {:else}
+                <Globe class="h-4 w-4" />
+                Expand Setting with AI
+              {/if}
+            </button>
+          {/if}
+
+          {#if settingError}
+            <p class="text-sm text-red-400">{settingError}</p>
+          {/if}
+
+          {#if expandedSetting}
+            <div class="card bg-surface-900 p-4 space-y-3">
+              <div class="flex items-center justify-between">
+                <h3 class="font-semibold text-surface-100">{expandedSetting.name}</h3>
+                <button
+                  class="text-xs text-accent-400 hover:text-accent-300"
+                  onclick={expandSetting}
+                  disabled={isExpandingSetting}
+                >
+                  <RefreshCw class="h-3 w-3 inline mr-1" />
+                  Regenerate
+                </button>
+              </div>
+              <p class="text-sm text-surface-300 whitespace-pre-wrap">{expandedSetting.description}</p>
+
+              {#if expandedSetting.keyLocations.length > 0}
+                <div>
+                  <h4 class="text-xs font-medium text-surface-400 uppercase mb-1">Key Locations</h4>
+                  <ul class="text-sm text-surface-300 space-y-1">
+                    {#each expandedSetting.keyLocations as location}
+                      <li><strong>{location.name}:</strong> {location.description}</li>
+                    {/each}
+                  </ul>
+                </div>
+              {/if}
+
+              <div class="flex flex-wrap gap-2">
+                {#each expandedSetting.themes as theme}
+                  <span class="px-2 py-0.5 rounded-full bg-surface-700 text-xs text-surface-300">{theme}</span>
+                {/each}
+              </div>
+            </div>
+          {/if}
+        </div>
+
+      {:else if currentStep === 4}
+        <!-- Step 4: Protagonist/Characters -->
+        <div class="space-y-4">
+          <p class="text-surface-400">
+            {selectedMode === 'adventure'
+              ? 'Create your character for this adventure.'
+              : 'Define the main characters for your story.'}
+          </p>
+
+          {#if !expandedSetting}
+            <div class="card bg-amber-500/10 border-amber-500/30 p-4">
+              <p class="text-sm text-amber-400">
+                Go back to Step 3 and expand your setting first. This helps create a more fitting character.
+              </p>
+            </div>
+          {:else}
+            <!-- Protagonist Section -->
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <h3 class="font-medium text-surface-100">
+                  {selectedMode === 'adventure' ? 'Your Character' : 'Main Character'}
+                </h3>
+                <button
+                  class="btn btn-secondary btn-sm flex items-center gap-1"
+                  onclick={generateProtagonist}
+                  disabled={isGeneratingProtagonist}
+                >
+                  {#if isGeneratingProtagonist}
+                    <Loader2 class="h-3 w-3 animate-spin" />
+                    Generating...
+                  {:else}
+                    <User class="h-3 w-3" />
+                    {protagonist ? 'Regenerate' : 'Generate Character'}
+                  {/if}
+                </button>
+              </div>
+
+              {#if protagonistError}
+                <p class="text-sm text-red-400">{protagonistError}</p>
+              {/if}
+
+              {#if protagonist}
+                <div class="card bg-surface-900 p-4 space-y-2">
+                  <h4 class="font-semibold text-surface-100">{protagonist.name}</h4>
+                  <p class="text-sm text-surface-300">{protagonist.description}</p>
+                  {#if protagonist.background}
+                    <p class="text-sm text-surface-400"><strong>Background:</strong> {protagonist.background}</p>
+                  {/if}
+                  {#if protagonist.motivation}
+                    <p class="text-sm text-surface-400"><strong>Motivation:</strong> {protagonist.motivation}</p>
+                  {/if}
+                  <div class="flex flex-wrap gap-1">
+                    {#each protagonist.traits as trait}
+                      <span class="px-2 py-0.5 rounded-full bg-primary-900/50 text-xs text-primary-400">{trait}</span>
+                    {/each}
+                  </div>
+                </div>
+              {:else}
+                <p class="text-sm text-surface-500 italic">
+                  Click "Generate Character" to create a protagonist, or skip to use a default.
+                </p>
+              {/if}
+            </div>
+
+            <!-- Supporting Characters (Creative Mode Only) -->
+            {#if selectedMode === 'creative-writing'}
+              <div class="space-y-3 pt-4 border-t border-surface-700">
+                <div class="flex items-center justify-between">
+                  <h3 class="font-medium text-surface-100">Supporting Cast</h3>
+                  <button
+                    class="btn btn-secondary btn-sm flex items-center gap-1"
+                    onclick={generateCharacters}
+                    disabled={isGeneratingCharacters || !protagonist}
+                  >
+                    {#if isGeneratingCharacters}
+                      <Loader2 class="h-3 w-3 animate-spin" />
+                      Generating...
+                    {:else}
+                      <Users class="h-3 w-3" />
+                      {supportingCharacters.length > 0 ? 'Regenerate' : 'Generate Characters'}
+                    {/if}
+                  </button>
+                </div>
+
+                {#if supportingCharacters.length > 0}
+                  <div class="space-y-2">
+                    {#each supportingCharacters as char}
+                      <div class="card bg-surface-900 p-3">
+                        <div class="flex items-center justify-between mb-1">
+                          <span class="font-medium text-surface-100">{char.name}</span>
+                          <span class="text-xs text-accent-400">{char.role}</span>
+                        </div>
+                        <p class="text-sm text-surface-300">{char.description}</p>
+                        <p class="text-xs text-surface-400 mt-1">{char.relationship}</p>
+                      </div>
+                    {/each}
+                  </div>
+                {:else}
+                  <p class="text-sm text-surface-500 italic">
+                    {protagonist
+                      ? 'Click "Generate Characters" to create supporting cast members.'
+                      : 'Generate a protagonist first to create supporting characters.'}
+                  </p>
+                {/if}
+              </div>
+            {/if}
+          {/if}
+        </div>
+
+      {:else if currentStep === 5}
+        <!-- Step 5: Writing Style -->
+        <div class="space-y-6">
+          <p class="text-surface-400">Customize how your story will be written.</p>
+
+          <!-- POV Selection -->
+          <div>
+            <label class="mb-2 block text-sm font-medium text-surface-300">Point of View</label>
+            <div class="grid grid-cols-3 gap-2">
+              {#each povOptions as option}
+                <button
+                  class="card p-3 text-center transition-all"
+                  class:ring-2={selectedPOV === option.id}
+                  class:ring-accent-500={selectedPOV === option.id}
+                  onclick={() => selectedPOV = option.id}
+                >
+                  <span class="block font-medium text-surface-100">{option.label}</span>
+                  <span class="text-xs text-surface-400">{option.example}</span>
+                </button>
+              {/each}
+            </div>
+          </div>
+
+          <!-- Tense Selection -->
+          <div>
+            <label class="mb-2 block text-sm font-medium text-surface-300">Tense</label>
+            <div class="grid grid-cols-2 gap-2">
+              {#each tenseOptions as option}
+                <button
+                  class="card p-3 text-center transition-all"
+                  class:ring-2={selectedTense === option.id}
+                  class:ring-accent-500={selectedTense === option.id}
+                  onclick={() => selectedTense = option.id}
+                >
+                  <span class="block font-medium text-surface-100">{option.label}</span>
+                  <span class="text-xs text-surface-400">{option.example}</span>
+                </button>
+              {/each}
+            </div>
+          </div>
+
+          <!-- Tone Selection -->
+          <div>
+            <label class="mb-2 block text-sm font-medium text-surface-300">Tone</label>
+            <div class="flex flex-wrap gap-2 mb-2">
+              {#each tonePresets as preset}
+                <button
+                  class="px-3 py-1 rounded-full text-sm transition-colors"
+                  class:bg-accent-500={tone === preset}
+                  class:text-white={tone === preset}
+                  class:bg-surface-700={tone !== preset}
+                  class:text-surface-300={tone !== preset}
+                  class:hover:bg-surface-600={tone !== preset}
+                  onclick={() => tone = preset}
+                >
+                  {preset}
+                </button>
+              {/each}
+            </div>
+            <input
+              type="text"
+              bind:value={tone}
+              placeholder="Or describe your own tone..."
+              class="input"
+            />
+          </div>
+        </div>
+
+      {:else if currentStep === 6}
+        <!-- Step 6: Import (Optional) -->
+        <div class="space-y-4">
+          <p class="text-surface-400">
+            Import existing character cards or lorebooks to populate your world. (Optional)
+          </p>
+
+          <div class="card bg-surface-900 border-dashed border-2 border-surface-600 p-8 text-center">
+            <div class="text-surface-500 mb-2">
+              <Sparkles class="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>Import feature coming soon</p>
+              <p class="text-xs mt-1">Support for SillyTavern character cards and lorebooks</p>
+            </div>
+          </div>
+
+          <p class="text-sm text-surface-500 text-center">
+            You can skip this step and add content later.
+          </p>
+        </div>
+
+      {:else if currentStep === 7}
+        <!-- Step 7: Generate Opening -->
+        <div class="space-y-4">
+          <p class="text-surface-400">
+            Give your story a title and generate the opening scene.
+          </p>
+
+          <div>
+            <label class="mb-2 block text-sm font-medium text-surface-300">Story Title</label>
+            <input
+              type="text"
+              bind:value={storyTitle}
+              placeholder="Enter a title for your adventure..."
+              class="input"
+            />
+          </div>
+
+          {#if storyTitle.trim()}
+            <button
+              class="btn btn-secondary flex items-center gap-2"
+              onclick={generateOpening}
+              disabled={isGeneratingOpening}
+            >
+              {#if isGeneratingOpening}
+                <Loader2 class="h-4 w-4 animate-spin" />
+                Generating Opening...
+              {:else}
+                <PenTool class="h-4 w-4" />
+                {generatedOpening ? 'Regenerate Opening' : 'Generate Opening Scene'}
+              {/if}
+            </button>
+          {/if}
+
+          {#if openingError}
+            <p class="text-sm text-red-400">{openingError}</p>
+          {/if}
+
+          {#if streamedOpening || generatedOpening}
+            <div class="card bg-surface-900 p-4 max-h-64 overflow-y-auto">
+              <h3 class="font-semibold text-surface-100 mb-2">
+                {generatedOpening?.title || storyTitle}
+              </h3>
+              <div class="prose prose-invert prose-sm max-w-none">
+                <p class="text-surface-300 whitespace-pre-wrap">
+                  {streamedOpening || generatedOpening?.scene || ''}
+                </p>
+              </div>
+            </div>
+          {/if}
+
+          <!-- Summary -->
+          <div class="card bg-surface-800 p-4 space-y-2 text-sm">
+            <h4 class="font-medium text-surface-200">Story Summary</h4>
+            <div class="grid grid-cols-2 gap-2 text-surface-400">
+              <div><strong>Mode:</strong> {selectedMode === 'adventure' ? 'Adventure' : 'Creative Writing'}</div>
+              <div><strong>Genre:</strong> {selectedGenre === 'custom' ? customGenre : selectedGenre}</div>
+              <div><strong>POV:</strong> {povOptions.find(p => p.id === selectedPOV)?.label}</div>
+              <div><strong>Tense:</strong> {tenseOptions.find(t => t.id === selectedTense)?.label}</div>
+              {#if expandedSetting}
+                <div class="col-span-2"><strong>Setting:</strong> {expandedSetting.name}</div>
+              {/if}
+              {#if protagonist}
+                <div class="col-span-2"><strong>Protagonist:</strong> {protagonist.name}</div>
+              {/if}
+            </div>
+          </div>
+        </div>
+      {/if}
+    </div>
+
+    <!-- Footer Navigation -->
+    <div class="flex justify-between border-t border-surface-700 pt-4 shrink-0">
+      <button
+        class="btn btn-secondary flex items-center gap-1"
+        onclick={prevStep}
+        disabled={currentStep === 1}
+      >
+        <ChevronLeft class="h-4 w-4" />
+        Back
+      </button>
+
+      {#if currentStep === totalSteps}
+        <button
+          class="btn btn-primary flex items-center gap-2"
+          onclick={createStory}
+          disabled={!storyTitle.trim() || isGeneratingOpening}
+        >
+          <Play class="h-4 w-4" />
+          Begin Story
+        </button>
+      {:else}
+        <button
+          class="btn btn-primary flex items-center gap-1"
+          onclick={nextStep}
+          disabled={!canProceed()}
+        >
+          Next
+          <ChevronRight class="h-4 w-4" />
+        </button>
+      {/if}
+    </div>
+  </div>
+</div>

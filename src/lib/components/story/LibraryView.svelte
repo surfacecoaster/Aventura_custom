@@ -5,8 +5,10 @@
   import { exportService } from '$lib/services/export';
   import { Plus, BookOpen, Trash2, Clock, Sparkles, Wand2, Rocket, Search, Skull, Heart, FileText, Upload, Sword, Feather, User } from 'lucide-svelte';
   import type { Template, StoryMode, POV } from '$lib/types';
+  import SetupWizard from '../wizard/SetupWizard.svelte';
 
   let showNewStoryModal = $state(false);
+  let showSetupWizard = $state(false);
   let newStoryTitle = $state('');
   let selectedTemplateId = $state<string | null>(null);
   let selectedMode = $state<StoryMode>('adventure');
@@ -139,11 +141,18 @@
           Import
         </button>
         <button
-          class="btn btn-primary flex items-center gap-2"
+          class="btn btn-secondary flex items-center gap-2"
           onclick={() => showNewStoryModal = true}
         >
           <Plus class="h-5 w-5" />
-          New Story
+          Quick Start
+        </button>
+        <button
+          class="btn btn-primary flex items-center gap-2"
+          onclick={() => showSetupWizard = true}
+        >
+          <Sparkles class="h-5 w-5" />
+          Create Story
         </button>
       </div>
     </div>
@@ -161,13 +170,22 @@
         <BookOpen class="mb-4 h-16 w-16 text-surface-600" />
         <h2 class="text-xl font-semibold text-surface-300">No stories yet</h2>
         <p class="mt-2 text-surface-500">Create your first adventure to get started</p>
-        <button
-          class="btn btn-primary mt-6 flex items-center gap-2"
-          onclick={() => showNewStoryModal = true}
-        >
-          <Plus class="h-5 w-5" />
-          Create Story
-        </button>
+        <div class="mt-6 flex gap-3">
+          <button
+            class="btn btn-secondary flex items-center gap-2"
+            onclick={() => showNewStoryModal = true}
+          >
+            <Plus class="h-5 w-5" />
+            Quick Start
+          </button>
+          <button
+            class="btn btn-primary flex items-center gap-2"
+            onclick={() => showSetupWizard = true}
+          >
+            <Sparkles class="h-5 w-5" />
+            Create Story
+          </button>
+        </div>
       </div>
     {:else}
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -405,4 +423,9 @@
       {/if}
     </div>
   </div>
+{/if}
+
+<!-- Setup Wizard -->
+{#if showSetupWizard}
+  <SetupWizard onClose={() => showSetupWizard = false} />
 {/if}
