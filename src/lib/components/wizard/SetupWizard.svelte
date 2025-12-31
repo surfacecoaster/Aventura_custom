@@ -164,7 +164,8 @@
       expandedSetting = await scenarioService.expandSetting(
         settingSeed,
         selectedGenre,
-        customGenre || undefined
+        customGenre || undefined,
+        settings.wizardSettings.settingExpansion
       );
     } catch (error) {
       console.error('Failed to expand setting:', error);
@@ -187,7 +188,8 @@
         selectedGenre,
         selectedMode,
         selectedPOV,
-        customGenre || undefined
+        customGenre || undefined,
+        settings.wizardSettings.protagonistGeneration
       );
     } catch (error) {
       console.error('Failed to generate protagonist:', error);
@@ -244,7 +246,8 @@
         },
         expandedSetting,
         selectedGenre,
-        customGenre || undefined
+        customGenre || undefined,
+        settings.wizardSettings.characterElaboration
       );
       showManualInput = false;
     } catch (error) {
@@ -280,7 +283,8 @@
         protagonist,
         selectedGenre,
         3,
-        customGenre || undefined
+        customGenre || undefined,
+        settings.wizardSettings.supportingCharacters
       );
     } catch (error) {
       console.error('Failed to generate characters:', error);
@@ -315,7 +319,7 @@
 
     try {
       // Stream the opening for real-time display
-      for await (const chunk of scenarioService.streamOpening(wizardData)) {
+      for await (const chunk of scenarioService.streamOpening(wizardData, settings.wizardSettings.openingGeneration)) {
         if (chunk.content) {
           streamedOpening += chunk.content;
         }
@@ -323,7 +327,7 @@
       }
 
       // Get the full structured opening
-      generatedOpening = await scenarioService.generateOpening(wizardData);
+      generatedOpening = await scenarioService.generateOpening(wizardData, settings.wizardSettings.openingGeneration);
       // Use streamed content if available
       if (streamedOpening.trim()) {
         generatedOpening.scene = streamedOpening;
@@ -921,6 +925,10 @@
 
           <p class="text-sm text-surface-500 text-center">
             You can skip this step and add content later.
+          </p>
+
+          <p class="text-xs text-surface-500 text-center">
+            Tip: To customize AI models and prompts, go to Settings → Advanced tab.
           </p>
         </div>
 

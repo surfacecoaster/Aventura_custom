@@ -1,5 +1,6 @@
 import type { OpenRouterProvider } from './openrouter';
 import type { Character, Location, Item, StoryBeat } from '$lib/types';
+import { settings, type ClassifierSettings } from '$lib/stores/settings.svelte';
 
 const DEBUG = true;
 
@@ -101,14 +102,27 @@ export interface ClassificationContext {
 
 export class ClassifierService {
   private provider: OpenRouterProvider;
-  private model: string;
-  private temperature: number;
+  private settingsOverride?: Partial<ClassifierSettings>;
 
-  constructor(provider: OpenRouterProvider, model?: string, temperature?: number) {
+  constructor(provider: OpenRouterProvider, settingsOverride?: Partial<ClassifierSettings>) {
     this.provider = provider;
-    // Use Grok 4.1 Fast for classification - fast and capable
-    this.model = model || 'x-ai/grok-4.1-fast';
-    this.temperature = temperature ?? 0.3;
+    this.settingsOverride = settingsOverride;
+  }
+
+  private get model(): string {
+    return this.settingsOverride?.model ?? settings.systemServicesSettings.classifier.model;
+  }
+
+  private get temperature(): number {
+    return this.settingsOverride?.temperature ?? settings.systemServicesSettings.classifier.temperature;
+  }
+
+  private get maxTokens(): number {
+    return this.settingsOverride?.maxTokens ?? settings.systemServicesSettings.classifier.maxTokens;
+  }
+
+  private get systemPrompt(): string {
+    return this.settingsOverride?.systemPrompt ?? settings.systemServicesSettings.classifier.systemPrompt;
   }
 
   async classify(context: ClassificationContext): Promise<ClassificationResult> {
@@ -130,11 +144,11 @@ export class ClassifierService {
       const response = await this.provider.generateResponse({
         model: this.model,
         messages: [
-          { role: 'system', content: this.getSystemPrompt() },
+          { role: 'system', content: this.systemPrompt },
           { role: 'user', content: prompt }
         ],
         temperature: this.temperature,
-        maxTokens: 2000,
+        maxTokens: this.maxTokens,
         extraBody: {
           reasoning: { enabled: true },
         },
@@ -164,48 +178,6 @@ export class ClassifierService {
       // Return empty result on failure - don't break the main flow
       return this.getEmptyResult();
     }
-  }
-
-  private getSystemPrompt(): string {
-    return `You analyze interactive fiction responses and extract structured world state changes.
-
-## Your Role
-Extract ONLY significant, named entities that matter to the ongoing story. Be precise and conservative.
-
-## What to Extract
-
-### Characters - ONLY extract if:
-- They have a proper name (not "the merchant" or "a guard")
-- They have meaningful interaction with the protagonist
-- They are likely to appear again or are plot-relevant
-- Example: "Elena, the blacksmith's daughter who gives you a quest" = YES
-- Example: "the innkeeper who served your drink" = NO
-
-### Locations - ONLY extract if:
-- The protagonist physically travels there or it's their current location
-- It has a specific name (not "a dark alley" or "the forest")
-- Example: "You enter the Thornwood Tavern" = YES
-- Example: "You see mountains in the distance" = NO
-
-### Items - ONLY extract if:
-- The protagonist explicitly acquires, picks up, or is given the item
-- The item has narrative significance (quest item, weapon, key, etc.)
-- Example: "She hands you an ancient amulet" = YES
-- Example: "There's a bottle on the shelf" = NO
-
-### Story Beats - ONLY extract if:
-- A quest or task is explicitly given or accepted
-- A major revelation or plot twist occurs
-- A significant milestone is reached
-- Example: "She asks you to find her missing brother" = YES (quest)
-- Example: "You learn the king was murdered by his own son" = YES (revelation)
-- Example: "You enjoy a nice meal" = NO
-
-## Critical Rules
-1. When in doubt, DO NOT extract - false positives pollute the world state
-2. Only extract what ACTUALLY HAPPENED, not what might happen
-3. Use the exact names from the text, don't invent or embellish
-4. Respond with valid JSON only - no markdown, no explanation`;
   }
 
   private buildClassificationPrompt(context: ClassificationContext): string {

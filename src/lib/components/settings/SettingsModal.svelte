@@ -1,12 +1,37 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { ui } from '$lib/stores/ui.svelte';
-  import { settings } from '$lib/stores/settings.svelte';
+  import { settings, DEFAULT_SERVICE_PROMPTS } from '$lib/stores/settings.svelte';
   import { OpenRouterProvider } from '$lib/services/ai/openrouter';
   import type { ModelInfo } from '$lib/services/ai/types';
-  import { X, Key, Cpu, Palette, RefreshCw, Search } from 'lucide-svelte';
+  import {
+    type AdvancedWizardSettings,
+    SCENARIO_MODEL,
+  } from '$lib/services/ai/scenario';
+  import { X, Key, Cpu, Palette, RefreshCw, Search, Settings2, RotateCcw, ChevronDown, ChevronUp, Brain, BookOpen, Lightbulb } from 'lucide-svelte';
 
-  let activeTab = $state<'api' | 'generation' | 'ui'>('api');
+  let activeTab = $state<'api' | 'generation' | 'ui' | 'advanced'>('api');
+
+  // Advanced settings section state
+  let showStoryGenSection = $state(true);
+  let showWizardSection = $state(false);
+  let showClassifierSection = $state(false);
+  let showMemorySection = $state(false);
+  let showSuggestionsSection = $state(false);
+  let editingStoryPrompt = $state<'adventure' | 'creativeWriting' | null>(null);
+  let editingProcess = $state<keyof AdvancedWizardSettings | null>(null);
+  let editingClassifierPrompt = $state(false);
+  let editingMemoryPrompt = $state<'chapterAnalysis' | 'chapterSummarization' | 'retrievalDecision' | null>(null);
+  let editingSuggestionsPrompt = $state(false);
+
+  // Process labels for UI
+  const processLabels: Record<keyof AdvancedWizardSettings, string> = {
+    settingExpansion: 'Setting Expansion',
+    protagonistGeneration: 'Protagonist Generation',
+    characterElaboration: 'Character Elaboration',
+    supportingCharacters: 'Supporting Characters',
+    openingGeneration: 'Opening Generation',
+  };
 
   // Local state for API key (to avoid showing actual key)
   let apiKeyInput = $state('');
@@ -183,6 +208,16 @@
       >
         <Palette class="h-4 w-4" />
         Interface
+      </button>
+      <button
+        class="flex items-center gap-2 rounded-lg px-4 py-2 text-sm"
+        class:bg-surface-700={activeTab === 'advanced'}
+        class:text-surface-100={activeTab === 'advanced'}
+        class:text-surface-400={activeTab !== 'advanced'}
+        onclick={() => activeTab = 'advanced'}
+      >
+        <Settings2 class="h-4 w-4" />
+        Advanced
       </button>
     </div>
 
@@ -364,6 +399,589 @@
               }}
               class="h-5 w-5 rounded border-surface-600 bg-surface-700"
             />
+          </div>
+        </div>
+      {:else if activeTab === 'advanced'}
+        <div class="space-y-4">
+          <!-- Story Generation Section -->
+          <div class="border-b border-surface-700 pb-3">
+            <div class="flex items-center justify-between">
+              <button
+                class="flex items-center gap-2 text-left flex-1"
+                onclick={() => showStoryGenSection = !showStoryGenSection}
+              >
+                <div>
+                  <h3 class="text-sm font-medium text-surface-200">Story Generation</h3>
+                  <p class="text-xs text-surface-500">Main AI prompts for gameplay</p>
+                </div>
+              </button>
+              <div class="flex items-center gap-2">
+                <button
+                  class="text-xs text-accent-400 hover:text-accent-300 flex items-center gap-1"
+                  onclick={() => settings.resetStoryGenerationSettings()}
+                >
+                  <RotateCcw class="h-3 w-3" />
+                  Reset
+                </button>
+                <button onclick={() => showStoryGenSection = !showStoryGenSection}>
+                  {#if showStoryGenSection}
+                    <ChevronUp class="h-4 w-4 text-surface-400" />
+                  {:else}
+                    <ChevronDown class="h-4 w-4 text-surface-400" />
+                  {/if}
+                </button>
+              </div>
+            </div>
+
+            {#if showStoryGenSection}
+              <div class="mt-3 space-y-3">
+                <!-- Adventure Mode Prompt -->
+                <div class="card bg-surface-900 p-3">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-medium text-surface-200">Adventure Mode Prompt</span>
+                    <button
+                      class="text-xs text-accent-400 hover:text-accent-300"
+                      onclick={() => editingStoryPrompt = editingStoryPrompt === 'adventure' ? null : 'adventure'}
+                    >
+                      {editingStoryPrompt === 'adventure' ? 'Close' : 'Edit'}
+                    </button>
+                  </div>
+                  {#if editingStoryPrompt === 'adventure'}
+                    <textarea
+                      bind:value={settings.storyGenerationSettings.adventurePrompt}
+                      onblur={() => settings.saveStoryGenerationSettings()}
+                      class="input text-xs min-h-[200px] resize-y font-mono w-full"
+                      rows="10"
+                    ></textarea>
+                  {:else}
+                    <p class="text-xs text-surface-400 line-clamp-2">
+                      {settings.storyGenerationSettings.adventurePrompt.slice(0, 150)}...
+                    </p>
+                  {/if}
+                </div>
+
+                <!-- Creative Writing Mode Prompt -->
+                <div class="card bg-surface-900 p-3">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-medium text-surface-200">Creative Writing Mode Prompt</span>
+                    <button
+                      class="text-xs text-accent-400 hover:text-accent-300"
+                      onclick={() => editingStoryPrompt = editingStoryPrompt === 'creativeWriting' ? null : 'creativeWriting'}
+                    >
+                      {editingStoryPrompt === 'creativeWriting' ? 'Close' : 'Edit'}
+                    </button>
+                  </div>
+                  {#if editingStoryPrompt === 'creativeWriting'}
+                    <textarea
+                      bind:value={settings.storyGenerationSettings.creativeWritingPrompt}
+                      onblur={() => settings.saveStoryGenerationSettings()}
+                      class="input text-xs min-h-[200px] resize-y font-mono w-full"
+                      rows="10"
+                    ></textarea>
+                  {:else}
+                    <p class="text-xs text-surface-400 line-clamp-2">
+                      {settings.storyGenerationSettings.creativeWritingPrompt.slice(0, 150)}...
+                    </p>
+                  {/if}
+                </div>
+              </div>
+            {/if}
+          </div>
+
+          <!-- Wizard Generation Section -->
+          <div>
+            <div class="flex items-center justify-between">
+              <button
+                class="flex items-center gap-2 text-left flex-1"
+                onclick={() => showWizardSection = !showWizardSection}
+              >
+                <div>
+                  <h3 class="text-sm font-medium text-surface-200">Story Wizard</h3>
+                  <p class="text-xs text-surface-500">Models and prompts for wizard generation</p>
+                </div>
+              </button>
+              <div class="flex items-center gap-2">
+                <button
+                  class="text-xs text-accent-400 hover:text-accent-300 flex items-center gap-1"
+                  onclick={() => settings.resetAllWizardSettings()}
+                >
+                  <RotateCcw class="h-3 w-3" />
+                  Reset
+                </button>
+                <button onclick={() => showWizardSection = !showWizardSection}>
+                  {#if showWizardSection}
+                    <ChevronUp class="h-4 w-4 text-surface-400" />
+                  {:else}
+                    <ChevronDown class="h-4 w-4 text-surface-400" />
+                  {/if}
+                </button>
+              </div>
+            </div>
+
+            {#if showWizardSection}
+              <div class="mt-3 space-y-3">
+                {#each Object.entries(processLabels) as [processKey, label]}
+                  {@const process = processKey as keyof AdvancedWizardSettings}
+                  {@const processSettings = settings.wizardSettings[process]}
+                  <div class="card bg-surface-900 p-3">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-sm font-medium text-surface-200">{label}</span>
+                      <div class="flex items-center gap-2">
+                        <button
+                          class="text-xs text-surface-400 hover:text-surface-200"
+                          onclick={() => settings.resetWizardProcess(process)}
+                          title="Reset to default"
+                        >
+                          <RotateCcw class="h-3 w-3" />
+                        </button>
+                        <button
+                          class="text-xs text-accent-400 hover:text-accent-300"
+                          onclick={() => editingProcess = editingProcess === process ? null : process}
+                        >
+                          {editingProcess === process ? 'Close' : 'Edit'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {#if editingProcess === process}
+                      <div class="space-y-3 pt-2 border-t border-surface-700">
+                        <!-- Model Selection -->
+                        <div>
+                          <label class="mb-1 block text-xs font-medium text-surface-400">Model</label>
+                          <input
+                            type="text"
+                            bind:value={settings.wizardSettings[process].model}
+                            onblur={() => settings.saveWizardSettings()}
+                            placeholder={SCENARIO_MODEL}
+                            class="input text-sm"
+                          />
+                          <p class="text-xs text-surface-500 mt-1">
+                            Default: {SCENARIO_MODEL}
+                          </p>
+                        </div>
+
+                        <!-- Temperature -->
+                        <div>
+                          <label class="mb-1 block text-xs font-medium text-surface-400">
+                            Temperature: {processSettings.temperature?.toFixed(2) ?? 0.8}
+                          </label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="2"
+                            step="0.05"
+                            bind:value={settings.wizardSettings[process].temperature}
+                            onchange={() => settings.saveWizardSettings()}
+                            class="w-full h-2"
+                          />
+                          <div class="flex justify-between text-xs text-surface-500">
+                            <span>Focused</span>
+                            <span>Creative</span>
+                          </div>
+                        </div>
+
+                        <!-- Max Tokens -->
+                        <div>
+                          <label class="mb-1 block text-xs font-medium text-surface-400">
+                            Max Tokens: {processSettings.maxTokens ?? 1000}
+                          </label>
+                          <input
+                            type="range"
+                            min="256"
+                            max="4096"
+                            step="128"
+                            bind:value={settings.wizardSettings[process].maxTokens}
+                            onchange={() => settings.saveWizardSettings()}
+                            class="w-full h-2"
+                          />
+                          <div class="flex justify-between text-xs text-surface-500">
+                            <span>256</span>
+                            <span>4096</span>
+                          </div>
+                        </div>
+
+                        <!-- System Prompt -->
+                        <div>
+                          <label class="mb-1 block text-xs font-medium text-surface-400">System Prompt</label>
+                          <textarea
+                            bind:value={settings.wizardSettings[process].systemPrompt}
+                            onblur={() => settings.saveWizardSettings()}
+                            class="input text-xs min-h-[120px] resize-y font-mono"
+                            rows="6"
+                          ></textarea>
+                          <p class="text-xs text-surface-500 mt-1">
+                            {#if process === 'openingGeneration'}
+                              Placeholders: {'{userName}'}, {'{genreLabel}'}, {'{mode}'}, {'{tense}'}, {'{tone}'}
+                            {:else}
+                              Customize the system prompt for this process.
+                            {/if}
+                          </p>
+                        </div>
+                      </div>
+                    {:else}
+                      <div class="text-xs text-surface-400">
+                        <span class="text-surface-500">Model:</span> {processSettings.model || SCENARIO_MODEL}
+                        <span class="mx-2">•</span>
+                        <span class="text-surface-500">Temp:</span> {processSettings.temperature?.toFixed(1) ?? 0.8}
+                        <span class="mx-2">•</span>
+                        <span class="text-surface-500">Tokens:</span> {processSettings.maxTokens ?? 1000}
+                      </div>
+                    {/if}
+                  </div>
+                {/each}
+              </div>
+            {/if}
+          </div>
+
+          <!-- Classifier Section -->
+          <div class="border-t border-surface-700 pt-3">
+            <div class="flex items-center justify-between">
+              <button
+                class="flex items-center gap-2 text-left flex-1"
+                onclick={() => showClassifierSection = !showClassifierSection}
+              >
+                <Brain class="h-4 w-4 text-purple-400" />
+                <div>
+                  <h3 class="text-sm font-medium text-surface-200">World State Classifier</h3>
+                  <p class="text-xs text-surface-500">Extracts entities from narrative responses</p>
+                </div>
+              </button>
+              <div class="flex items-center gap-2">
+                <button
+                  class="text-xs text-accent-400 hover:text-accent-300 flex items-center gap-1"
+                  onclick={() => settings.resetClassifierSettings()}
+                >
+                  <RotateCcw class="h-3 w-3" />
+                  Reset
+                </button>
+                <button onclick={() => showClassifierSection = !showClassifierSection}>
+                  {#if showClassifierSection}
+                    <ChevronUp class="h-4 w-4 text-surface-400" />
+                  {:else}
+                    <ChevronDown class="h-4 w-4 text-surface-400" />
+                  {/if}
+                </button>
+              </div>
+            </div>
+
+            {#if showClassifierSection}
+              <div class="mt-3 space-y-3">
+                <div class="card bg-surface-900 p-3">
+                  <!-- Model and Temperature Row -->
+                  <div class="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                      <label class="mb-1 block text-xs font-medium text-surface-400">Model</label>
+                      <input
+                        type="text"
+                        bind:value={settings.systemServicesSettings.classifier.model}
+                        onblur={() => settings.saveSystemServicesSettings()}
+                        placeholder="x-ai/grok-4.1-fast"
+                        class="input text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label class="mb-1 block text-xs font-medium text-surface-400">
+                        Temperature: {settings.systemServicesSettings.classifier.temperature.toFixed(2)}
+                      </label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        bind:value={settings.systemServicesSettings.classifier.temperature}
+                        onchange={() => settings.saveSystemServicesSettings()}
+                        class="w-full h-2"
+                      />
+                    </div>
+                  </div>
+
+                  <!-- Max Tokens -->
+                  <div class="mb-3">
+                    <label class="mb-1 block text-xs font-medium text-surface-400">
+                      Max Tokens: {settings.systemServicesSettings.classifier.maxTokens}
+                    </label>
+                    <input
+                      type="range"
+                      min="500"
+                      max="4000"
+                      step="100"
+                      bind:value={settings.systemServicesSettings.classifier.maxTokens}
+                      onchange={() => settings.saveSystemServicesSettings()}
+                      class="w-full h-2"
+                    />
+                  </div>
+
+                  <!-- System Prompt -->
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-medium text-surface-400">System Prompt</span>
+                    <button
+                      class="text-xs text-accent-400 hover:text-accent-300"
+                      onclick={() => editingClassifierPrompt = !editingClassifierPrompt}
+                    >
+                      {editingClassifierPrompt ? 'Close' : 'Edit'}
+                    </button>
+                  </div>
+                  {#if editingClassifierPrompt}
+                    <textarea
+                      bind:value={settings.systemServicesSettings.classifier.systemPrompt}
+                      onblur={() => settings.saveSystemServicesSettings()}
+                      class="input text-xs min-h-[200px] resize-y font-mono w-full"
+                      rows="10"
+                    ></textarea>
+                  {:else}
+                    <p class="text-xs text-surface-400 line-clamp-2">
+                      {settings.systemServicesSettings.classifier.systemPrompt.slice(0, 150)}...
+                    </p>
+                  {/if}
+                </div>
+              </div>
+            {/if}
+          </div>
+
+          <!-- Memory Section -->
+          <div class="border-t border-surface-700 pt-3">
+            <div class="flex items-center justify-between">
+              <button
+                class="flex items-center gap-2 text-left flex-1"
+                onclick={() => showMemorySection = !showMemorySection}
+              >
+                <BookOpen class="h-4 w-4 text-blue-400" />
+                <div>
+                  <h3 class="text-sm font-medium text-surface-200">Memory & Chapters</h3>
+                  <p class="text-xs text-surface-500">Chapter analysis, summarization, and retrieval</p>
+                </div>
+              </button>
+              <div class="flex items-center gap-2">
+                <button
+                  class="text-xs text-accent-400 hover:text-accent-300 flex items-center gap-1"
+                  onclick={() => settings.resetMemorySettings()}
+                >
+                  <RotateCcw class="h-3 w-3" />
+                  Reset
+                </button>
+                <button onclick={() => showMemorySection = !showMemorySection}>
+                  {#if showMemorySection}
+                    <ChevronUp class="h-4 w-4 text-surface-400" />
+                  {:else}
+                    <ChevronDown class="h-4 w-4 text-surface-400" />
+                  {/if}
+                </button>
+              </div>
+            </div>
+
+            {#if showMemorySection}
+              <div class="mt-3 space-y-3">
+                <div class="card bg-surface-900 p-3">
+                  <!-- Model and Temperature Row -->
+                  <div class="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                      <label class="mb-1 block text-xs font-medium text-surface-400">Model</label>
+                      <input
+                        type="text"
+                        bind:value={settings.systemServicesSettings.memory.model}
+                        onblur={() => settings.saveSystemServicesSettings()}
+                        placeholder="x-ai/grok-4.1-fast"
+                        class="input text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label class="mb-1 block text-xs font-medium text-surface-400">
+                        Temperature: {settings.systemServicesSettings.memory.temperature.toFixed(2)}
+                      </label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        bind:value={settings.systemServicesSettings.memory.temperature}
+                        onchange={() => settings.saveSystemServicesSettings()}
+                        class="w-full h-2"
+                      />
+                    </div>
+                  </div>
+
+                  <!-- Chapter Analysis Prompt -->
+                  <div class="mb-3 border-t border-surface-700 pt-3">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-xs font-medium text-surface-400">Chapter Analysis Prompt</span>
+                      <button
+                        class="text-xs text-accent-400 hover:text-accent-300"
+                        onclick={() => editingMemoryPrompt = editingMemoryPrompt === 'chapterAnalysis' ? null : 'chapterAnalysis'}
+                      >
+                        {editingMemoryPrompt === 'chapterAnalysis' ? 'Close' : 'Edit'}
+                      </button>
+                    </div>
+                    {#if editingMemoryPrompt === 'chapterAnalysis'}
+                      <textarea
+                        bind:value={settings.systemServicesSettings.memory.chapterAnalysisPrompt}
+                        onblur={() => settings.saveSystemServicesSettings()}
+                        class="input text-xs min-h-[100px] resize-y font-mono w-full"
+                        rows="5"
+                      ></textarea>
+                    {:else}
+                      <p class="text-xs text-surface-400 line-clamp-2">
+                        {settings.systemServicesSettings.memory.chapterAnalysisPrompt.slice(0, 100)}...
+                      </p>
+                    {/if}
+                  </div>
+
+                  <!-- Chapter Summarization Prompt -->
+                  <div class="mb-3 border-t border-surface-700 pt-3">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-xs font-medium text-surface-400">Chapter Summarization Prompt</span>
+                      <button
+                        class="text-xs text-accent-400 hover:text-accent-300"
+                        onclick={() => editingMemoryPrompt = editingMemoryPrompt === 'chapterSummarization' ? null : 'chapterSummarization'}
+                      >
+                        {editingMemoryPrompt === 'chapterSummarization' ? 'Close' : 'Edit'}
+                      </button>
+                    </div>
+                    {#if editingMemoryPrompt === 'chapterSummarization'}
+                      <textarea
+                        bind:value={settings.systemServicesSettings.memory.chapterSummarizationPrompt}
+                        onblur={() => settings.saveSystemServicesSettings()}
+                        class="input text-xs min-h-[100px] resize-y font-mono w-full"
+                        rows="5"
+                      ></textarea>
+                    {:else}
+                      <p class="text-xs text-surface-400 line-clamp-2">
+                        {settings.systemServicesSettings.memory.chapterSummarizationPrompt.slice(0, 100)}...
+                      </p>
+                    {/if}
+                  </div>
+
+                  <!-- Retrieval Decision Prompt -->
+                  <div class="border-t border-surface-700 pt-3">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-xs font-medium text-surface-400">Retrieval Decision Prompt</span>
+                      <button
+                        class="text-xs text-accent-400 hover:text-accent-300"
+                        onclick={() => editingMemoryPrompt = editingMemoryPrompt === 'retrievalDecision' ? null : 'retrievalDecision'}
+                      >
+                        {editingMemoryPrompt === 'retrievalDecision' ? 'Close' : 'Edit'}
+                      </button>
+                    </div>
+                    {#if editingMemoryPrompt === 'retrievalDecision'}
+                      <textarea
+                        bind:value={settings.systemServicesSettings.memory.retrievalDecisionPrompt}
+                        onblur={() => settings.saveSystemServicesSettings()}
+                        class="input text-xs min-h-[100px] resize-y font-mono w-full"
+                        rows="5"
+                      ></textarea>
+                    {:else}
+                      <p class="text-xs text-surface-400 line-clamp-2">
+                        {settings.systemServicesSettings.memory.retrievalDecisionPrompt.slice(0, 100)}...
+                      </p>
+                    {/if}
+                  </div>
+                </div>
+              </div>
+            {/if}
+          </div>
+
+          <!-- Suggestions Section -->
+          <div class="border-t border-surface-700 pt-3">
+            <div class="flex items-center justify-between">
+              <button
+                class="flex items-center gap-2 text-left flex-1"
+                onclick={() => showSuggestionsSection = !showSuggestionsSection}
+              >
+                <Lightbulb class="h-4 w-4 text-yellow-400" />
+                <div>
+                  <h3 class="text-sm font-medium text-surface-200">Story Suggestions</h3>
+                  <p class="text-xs text-surface-500">Generates story direction suggestions</p>
+                </div>
+              </button>
+              <div class="flex items-center gap-2">
+                <button
+                  class="text-xs text-accent-400 hover:text-accent-300 flex items-center gap-1"
+                  onclick={() => settings.resetSuggestionsSettings()}
+                >
+                  <RotateCcw class="h-3 w-3" />
+                  Reset
+                </button>
+                <button onclick={() => showSuggestionsSection = !showSuggestionsSection}>
+                  {#if showSuggestionsSection}
+                    <ChevronUp class="h-4 w-4 text-surface-400" />
+                  {:else}
+                    <ChevronDown class="h-4 w-4 text-surface-400" />
+                  {/if}
+                </button>
+              </div>
+            </div>
+
+            {#if showSuggestionsSection}
+              <div class="mt-3 space-y-3">
+                <div class="card bg-surface-900 p-3">
+                  <!-- Model, Temperature, and Max Tokens Row -->
+                  <div class="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                      <label class="mb-1 block text-xs font-medium text-surface-400">Model</label>
+                      <input
+                        type="text"
+                        bind:value={settings.systemServicesSettings.suggestions.model}
+                        onblur={() => settings.saveSystemServicesSettings()}
+                        placeholder="x-ai/grok-4.1-fast"
+                        class="input text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label class="mb-1 block text-xs font-medium text-surface-400">
+                        Temperature: {settings.systemServicesSettings.suggestions.temperature.toFixed(2)}
+                      </label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="2"
+                        step="0.05"
+                        bind:value={settings.systemServicesSettings.suggestions.temperature}
+                        onchange={() => settings.saveSystemServicesSettings()}
+                        class="w-full h-2"
+                      />
+                    </div>
+                  </div>
+
+                  <!-- Max Tokens -->
+                  <div class="mb-3">
+                    <label class="mb-1 block text-xs font-medium text-surface-400">
+                      Max Tokens: {settings.systemServicesSettings.suggestions.maxTokens}
+                    </label>
+                    <input
+                      type="range"
+                      min="200"
+                      max="2000"
+                      step="100"
+                      bind:value={settings.systemServicesSettings.suggestions.maxTokens}
+                      onchange={() => settings.saveSystemServicesSettings()}
+                      class="w-full h-2"
+                    />
+                  </div>
+
+                  <!-- System Prompt -->
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-medium text-surface-400">System Prompt</span>
+                    <button
+                      class="text-xs text-accent-400 hover:text-accent-300"
+                      onclick={() => editingSuggestionsPrompt = !editingSuggestionsPrompt}
+                    >
+                      {editingSuggestionsPrompt ? 'Close' : 'Edit'}
+                    </button>
+                  </div>
+                  {#if editingSuggestionsPrompt}
+                    <textarea
+                      bind:value={settings.systemServicesSettings.suggestions.systemPrompt}
+                      onblur={() => settings.saveSystemServicesSettings()}
+                      class="input text-xs min-h-[100px] resize-y font-mono w-full"
+                      rows="5"
+                    ></textarea>
+                  {:else}
+                    <p class="text-xs text-surface-400 line-clamp-2">
+                      {settings.systemServicesSettings.suggestions.systemPrompt.slice(0, 100)}...
+                    </p>
+                  {/if}
+                </div>
+              </div>
+            {/if}
           </div>
         </div>
       {/if}

@@ -1,5 +1,6 @@
 import type { OpenRouterProvider } from './openrouter';
 import type { Chapter, StoryEntry, MemoryConfig } from '$lib/types';
+import { settings, type MemorySettings } from '$lib/stores/settings.svelte';
 
 const DEBUG = true;
 
@@ -48,14 +49,31 @@ export interface RetrievedContext {
 
 export class MemoryService {
   private provider: OpenRouterProvider;
-  private model: string;
-  private temperature: number;
+  private settingsOverride?: Partial<MemorySettings>;
 
-  constructor(provider: OpenRouterProvider, model?: string, temperature?: number) {
+  constructor(provider: OpenRouterProvider, settingsOverride?: Partial<MemorySettings>) {
     this.provider = provider;
-    // Use Grok 4.1 Fast for memory operations - fast and capable
-    this.model = model || 'x-ai/grok-4.1-fast';
-    this.temperature = temperature ?? 0.3;
+    this.settingsOverride = settingsOverride;
+  }
+
+  private get model(): string {
+    return this.settingsOverride?.model ?? settings.systemServicesSettings.memory.model;
+  }
+
+  private get temperature(): number {
+    return this.settingsOverride?.temperature ?? settings.systemServicesSettings.memory.temperature;
+  }
+
+  private get chapterAnalysisPrompt(): string {
+    return this.settingsOverride?.chapterAnalysisPrompt ?? settings.systemServicesSettings.memory.chapterAnalysisPrompt;
+  }
+
+  private get chapterSummarizationPrompt(): string {
+    return this.settingsOverride?.chapterSummarizationPrompt ?? settings.systemServicesSettings.memory.chapterSummarizationPrompt;
+  }
+
+  private get retrievalDecisionPrompt(): string {
+    return this.settingsOverride?.retrievalDecisionPrompt ?? settings.systemServicesSettings.memory.retrievalDecisionPrompt;
   }
 
   /**
@@ -106,7 +124,7 @@ export class MemoryService {
       const response = await this.provider.generateResponse({
         model: this.model,
         messages: [
-          { role: 'system', content: this.getChapterAnalysisSystemPrompt() },
+          { role: 'system', content: this.chapterAnalysisPrompt },
           { role: 'user', content: prompt },
         ],
         temperature: this.temperature,
@@ -160,10 +178,7 @@ Respond with JSON:
       const response = await this.provider.generateResponse({
         model: this.model,
         messages: [
-          {
-            role: 'system',
-            content: 'You are a story analyst. Extract key information from story chapters. Respond with valid JSON only.',
-          },
+          { role: 'system', content: this.chapterSummarizationPrompt },
           { role: 'user', content: prompt },
         ],
         temperature: this.temperature,
@@ -248,10 +263,7 @@ Guidelines:
       const response = await this.provider.generateResponse({
         model: this.model,
         messages: [
-          {
-            role: 'system',
-            content: 'You decide which story chapters are relevant for the current context. Respond with valid JSON only.',
-          },
+          { role: 'system', content: this.retrievalDecisionPrompt },
           { role: 'user', content: prompt },
         ],
         temperature: this.temperature,
@@ -295,17 +307,6 @@ Guidelines:
     }
 
     return contextBlock;
-  }
-
-  private getChapterAnalysisSystemPrompt(): string {
-    return `You analyze story content to find optimal chapter break points.
-
-A good chapter break:
-- Falls at a natural pause in the story (scene change, time skip, revelation)
-- Doesn't split the middle of an important scene or dialogue
-- Creates a satisfying sense of closure for what came before
-
-Respond with valid JSON only.`;
   }
 
   private buildChapterAnalysisPrompt(entries: StoryEntry[]): string {

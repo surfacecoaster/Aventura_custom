@@ -1,5 +1,6 @@
 import type { OpenRouterProvider } from './openrouter';
 import type { StoryEntry, StoryBeat } from '$lib/types';
+import { settings, type SuggestionsSettings } from '$lib/stores/settings.svelte';
 
 const DEBUG = true;
 
@@ -20,14 +21,27 @@ export interface SuggestionsResult {
 
 export class SuggestionsService {
   private provider: OpenRouterProvider;
-  private model: string;
-  private temperature: number;
+  private settingsOverride?: Partial<SuggestionsSettings>;
 
-  constructor(provider: OpenRouterProvider, model?: string, temperature?: number) {
+  constructor(provider: OpenRouterProvider, settingsOverride?: Partial<SuggestionsSettings>) {
     this.provider = provider;
-    // Use Grok 4.1 Fast for suggestions - fast and creative
-    this.model = model || 'x-ai/grok-4.1-fast';
-    this.temperature = temperature ?? 0.7; // Higher temp for creative variety
+    this.settingsOverride = settingsOverride;
+  }
+
+  private get model(): string {
+    return this.settingsOverride?.model ?? settings.systemServicesSettings.suggestions.model;
+  }
+
+  private get temperature(): number {
+    return this.settingsOverride?.temperature ?? settings.systemServicesSettings.suggestions.temperature;
+  }
+
+  private get maxTokens(): number {
+    return this.settingsOverride?.maxTokens ?? settings.systemServicesSettings.suggestions.maxTokens;
+  }
+
+  private get systemPrompt(): string {
+    return this.settingsOverride?.systemPrompt ?? settings.systemServicesSettings.suggestions.systemPrompt;
   }
 
   /**
@@ -94,14 +108,11 @@ Respond with JSON only:
       const response = await this.provider.generateResponse({
         model: this.model,
         messages: [
-          {
-            role: 'system',
-            content: 'You are a creative writing assistant that suggests story directions. You provide varied, interesting options that respect the story\'s established tone and elements. Respond with valid JSON only.',
-          },
+          { role: 'system', content: this.systemPrompt },
           { role: 'user', content: prompt },
         ],
         temperature: this.temperature,
-        maxTokens: 500,
+        maxTokens: this.maxTokens,
       });
 
       const result = this.parseSuggestions(response.content);
