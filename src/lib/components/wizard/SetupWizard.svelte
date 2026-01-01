@@ -178,11 +178,21 @@
     settingError = null;
 
     try {
+      // Prepare lorebook entries for setting expansion context
+      const lorebookContext = importedEntries.length > 0
+        ? importedEntries.map(e => ({
+            name: e.name,
+            type: e.type,
+            description: e.description,
+          }))
+        : undefined;
+
       expandedSetting = await scenarioService.expandSetting(
         settingSeed,
         selectedGenre,
         customGenre || undefined,
-        settings.wizardSettings.settingExpansion
+        settings.wizardSettings.settingExpansion,
+        lorebookContext
       );
     } catch (error) {
       console.error('Failed to expand setting:', error);

@@ -14,8 +14,8 @@ function log(...args: any[]) {
 // Default model for scenario generation - fast and capable
 export const SCENARIO_MODEL = 'deepseek/deepseek-v3.2';
 
-// Provider preference for deepseek models (with fallbacks)
-export const SCENARIO_PROVIDER = { order: ['deepseek', 'google-vertex', 'siliconflow/fp8'] };
+// Provider preference - prioritize Deepseek with fallbacks
+export const SCENARIO_PROVIDER = { order: ['deepseek'] };
 
 export type Genre = 'fantasy' | 'scifi' | 'modern' | 'horror' | 'mystery' | 'romance' | 'custom';
 export type Tense = 'past' | 'present';
@@ -146,7 +146,7 @@ export function getDefaultAdvancedSettings(): AdvancedWizardSettings {
       model: SCENARIO_MODEL,
       systemPrompt: DEFAULT_PROMPTS.settingExpansion,
       temperature: 0.8,
-      maxTokens: 1500,
+      maxTokens: 2000,
     },
     protagonistGeneration: {
       model: SCENARIO_MODEL,
@@ -170,7 +170,7 @@ export function getDefaultAdvancedSettings(): AdvancedWizardSettings {
       model: SCENARIO_MODEL,
       systemPrompt: DEFAULT_PROMPTS.openingGeneration,
       temperature: 0.85,
-      maxTokens: 1500,
+      maxTokens: 2000,
     },
   };
 }
@@ -291,14 +291,37 @@ class ScenarioService {
     seed: string,
     genre: Genre,
     customGenre?: string,
-    overrides?: ProcessSettings
+    overrides?: ProcessSettings,
+    lorebookEntries?: { name: string; type: string; description: string }[]
   ): Promise<ExpandedSetting> {
-    log('expandSetting called', { seed, genre, hasOverrides: !!overrides });
+    log('expandSetting called', { seed, genre, hasOverrides: !!overrides, lorebookEntries: lorebookEntries?.length ?? 0 });
 
     const provider = this.getProvider();
     const genreLabel = genre === 'custom' && customGenre ? customGenre : genre;
 
     const systemPrompt = overrides?.systemPrompt || DEFAULT_PROMPTS.settingExpansion;
+
+    // Build lorebook context if entries are provided
+    let lorebookContext = '';
+    if (lorebookEntries && lorebookEntries.length > 0) {
+      const entriesByType: Record<string, { name: string; description: string }[]> = {};
+      for (const entry of lorebookEntries) {
+        if (!entriesByType[entry.type]) {
+          entriesByType[entry.type] = [];
+        }
+        entriesByType[entry.type].push({ name: entry.name, description: entry.description });
+      }
+
+      lorebookContext = '\n\n## Existing Lore (from imported lorebook)\nIncorporate these established elements into the setting:\n';
+      for (const [type, entries] of Object.entries(entriesByType)) {
+        if (entries.length > 0) {
+          lorebookContext += `\n### ${type.charAt(0).toUpperCase() + type.slice(1)}s:\n`;
+          for (const entry of entries.slice(0, 15)) { // Limit per type to avoid token overflow
+            lorebookContext += `- **${entry.name}**: ${entry.description.substring(0, 200)}${entry.description.length > 200 ? '...' : ''}\n`;
+          }
+        }
+      }
+    }
 
     const messages: Message[] = [
       {
@@ -310,8 +333,8 @@ class ScenarioService {
         content: `Create a ${genreLabel} setting based on this seed idea:
 
 "${seed}"
-
-Expand this into a rich, detailed world suitable for interactive storytelling.`
+${lorebookContext}
+Expand this into a rich, detailed world suitable for interactive storytelling.${lorebookEntries && lorebookEntries.length > 0 ? ' Make sure the setting is consistent with the existing lore provided above.' : ''}`
       }
     ];
 
@@ -319,8 +342,11 @@ Expand this into a rich, detailed world suitable for interactive storytelling.`
       messages,
       model: overrides?.model || SCENARIO_MODEL,
       temperature: overrides?.temperature ?? 0.8,
-      maxTokens: overrides?.maxTokens ?? 1500,
-      extraBody: { provider: SCENARIO_PROVIDER },
+      maxTokens: overrides?.maxTokens ?? 2000,
+      extraBody: {
+        provider: SCENARIO_PROVIDER,
+        reasoning: { max_tokens: 8000 },
+      },
     });
 
     log('Setting expansion response received', { length: response.content.length });
@@ -714,8 +740,11 @@ Describe the environment and situation. Do NOT write anything ${userName} does, 
       messages,
       model: overrides?.model || SCENARIO_MODEL,
       temperature: overrides?.temperature ?? 0.85,
-      maxTokens: overrides?.maxTokens ?? 1500,
-      extraBody: { provider: SCENARIO_PROVIDER },
+      maxTokens: overrides?.maxTokens ?? 2000,
+      extraBody: {
+        provider: SCENARIO_PROVIDER,
+        reasoning: { max_tokens: 8000 },
+      },
     });
 
     log('Opening response received', { length: response.content.length });

@@ -370,7 +370,7 @@ export function getDefaultSystemServicesSettings(): SystemServicesSettings {
 class SettingsStore {
   apiSettings = $state<APISettings>({
     openrouterApiKey: null,
-    defaultModel: 'anthropic/claude-3.5-sonnet',
+    defaultModel: 'deepseek/deepseek-v3.2',
     temperature: 0.8,
     maxTokens: 1024,
     enableThinking: false,

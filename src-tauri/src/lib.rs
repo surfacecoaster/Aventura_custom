@@ -15,6 +15,12 @@ pub fn run() {
             sql: include_str!("../migrations/002_chapters_checkpoints.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 3,
+            description: "add_entries_lorebook",
+            sql: include_str!("../migrations/003_entries.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()
