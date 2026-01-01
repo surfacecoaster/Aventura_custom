@@ -143,7 +143,7 @@ Respond with valid JSON:
 export function getDefaultAdvancedSettings(): AdvancedWizardSettings {
   return {
     settingExpansion: {
-      model: SCENARIO_MODEL,
+      model: 'x-ai/grok-4-fast', // Grok 4 (not 4.1) for better world elaboration after lorebook import
       systemPrompt: DEFAULT_PROMPTS.settingExpansion,
       temperature: 0.8,
       maxTokens: 2000,

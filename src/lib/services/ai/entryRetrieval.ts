@@ -358,7 +358,8 @@ If no entries are relevant, return: []`;
     const all = [...tier1, ...tier2, ...tier3];
     if (all.length === 0) return '';
 
-    let block = '\n\n[LOREBOOK CONTEXT]';
+    let block = `\n\n[LOREBOOK CONTEXT]
+(CANONICAL - All information below is established lore. Do not contradict these facts.)`;
 
     // Group by type
     const byType: Record<EntryType, RetrievedEntry[]> = {
