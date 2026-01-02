@@ -158,7 +158,10 @@ class StoryStore {
     }
 
     // Count tokens for entries outside the buffer
-    const entriesOutsideBuffer = visibleEntries.slice(0, -bufferSize);
+    // Note: slice(0, -0) returns [] in JavaScript, so we need to handle bufferSize === 0 specially
+    const entriesOutsideBuffer = bufferSize === 0
+      ? visibleEntries
+      : visibleEntries.slice(0, -bufferSize);
     return entriesOutsideBuffer.reduce((total, entry) => {
       if (entry.metadata?.tokenCount) {
         return total + entry.metadata.tokenCount;
