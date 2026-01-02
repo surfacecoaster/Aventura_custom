@@ -730,6 +730,14 @@ ${userName} is a character you control. Write their:
 NEVER use second person ("you"). Always use "${userName}" or "he/she/they".
 </protagonist_as_character>
 
+<prohibited_patterns>
+- Banned words: orbs (for eyes), tresses, alabaster, porcelain, delve, visceral, palpable, chiseled, ozone
+- Banned phrases: "a testament to," "the weight of," "hung in the air," "sent shivers," "the scent of ozone"
+- "Not X, but Y" constructs: avoid "not anger, but something deeper"—just describe the thing directly
+- Purple prose: overwrought metaphors, consecutive similes, excessive adjectives
+- Telling emotions: "She felt sad"—show through concrete detail instead
+</prohibited_patterns>
+
 Respond with valid JSON:
 {
   "scene": "string - the opening (2-3 paragraphs of third-person narrative featuring ${userName})",
@@ -782,6 +790,13 @@ End by presenting a situation that naturally invites ${userName} to act:
 
 NO questions. NO "What do you do?" Just the pregnant moment.
 </ending>
+
+<prohibited_patterns>
+- Banned words: orbs (for eyes), tresses, alabaster, porcelain, delve, visceral, palpable, chiseled, ozone
+- Banned phrases: "a testament to," "the weight of," "hung in the air," "sent shivers," "the scent of ozone"
+- "Not X, but Y" constructs: avoid "not anger, but something deeper"—just describe the thing directly
+- Purple prose: overwrought metaphors, consecutive similes, excessive adjectives
+</prohibited_patterns>
 
 Respond with valid JSON:
 {
@@ -952,6 +967,14 @@ ${userName} is a character you control. Write their actions, dialogue, thoughts,
 NEVER use second person ("you"). Always use "${userName}" or "he/she/they".
 </what_to_write>
 
+<prohibited_patterns>
+- Banned words: orbs (for eyes), tresses, alabaster, porcelain, delve, visceral, palpable, chiseled, ozone
+- Banned phrases: "a testament to," "the weight of," "hung in the air," "sent shivers," "the scent of ozone"
+- "Not X, but Y" constructs: avoid "not anger, but something deeper"—just describe the thing directly
+- Purple prose: overwrought metaphors, consecutive similes, excessive adjectives
+- Telling emotions: "She felt sad"—show through concrete detail instead
+</prohibited_patterns>
+
 Write ONLY prose. No JSON, no metadata.`;
     } else {
       // Adventure mode: The user IS the protagonist
@@ -988,6 +1011,13 @@ Do NOT write:
 End with a situation inviting action: an NPC waiting, a door ajar, an object within reach.
 NO questions. Just the pregnant moment.
 </ending>
+
+<prohibited_patterns>
+- Banned words: orbs (for eyes), tresses, alabaster, porcelain, delve, visceral, palpable, chiseled, ozone
+- Banned phrases: "a testament to," "the weight of," "hung in the air," "sent shivers," "the scent of ozone"
+- "Not X, but Y" constructs: avoid "not anger, but something deeper"—just describe the thing directly
+- Purple prose: overwrought metaphors, consecutive similes, excessive adjectives
+</prohibited_patterns>
 
 Write ONLY prose. No JSON, no metadata.`;
     }

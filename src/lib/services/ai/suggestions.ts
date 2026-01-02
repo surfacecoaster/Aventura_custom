@@ -90,7 +90,7 @@ export class SuggestionsService {
       lorebookContext = `\n\n## Lorebook/World Elements\nThe following characters, locations, and concepts exist in this world and can be incorporated into suggestions:\n${entryDescriptions}`;
     }
 
-    const prompt = `Based on the current story moment, suggest 3 distinct directions the story could go next.
+    const prompt = `Based on the current story moment, suggest 3 distinct directions the overall narrative could develop.
 
 ## Recent Story Content
 """
@@ -103,17 +103,24 @@ ${threadsContext}
 ${genre ? `## Genre: ${genre}` : ''}${lorebookContext}
 
 ## Your Task
-Generate 3 diverse story direction suggestions. Each should be:
-- A single sentence describing what happens next
+Generate 3 diverse STORY DIRECTION suggestions. These should be plot developments, scene ideas, or narrative beats—NOT singular character actions.
+
+BAD examples (too small/action-focused):
+- "She picks up the letter"
+- "He draws his sword"
+- "They walk to the door"
+
+GOOD examples (story directions):
+- "A messenger arrives with news that changes everything"
+- "The confrontation with her father finally happens"
+- "The truth about the murder is revealed through an unexpected witness"
+- "A tense negotiation tests their alliance"
+
+Each suggestion should be:
+- A narrative direction or plot beat, not a character micro-action
 - Varied in approach (don't give 3 similar options)
 - Specific enough to write toward, vague enough to allow creativity
 - Appropriate to the established tone and genre
-- May reference lorebook elements if they fit naturally
-
-Consider including:
-- An action/plot progression option
-- A character/dialogue-focused option
-- A twist or revelation option
 
 Respond with JSON only:
 {

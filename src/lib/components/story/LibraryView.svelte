@@ -3,6 +3,7 @@
   import { ui } from '$lib/stores/ui.svelte';
   import { templateService, BUILTIN_TEMPLATES } from '$lib/services/templates';
   import { exportService } from '$lib/services/export';
+  import { ask } from '@tauri-apps/plugin-dialog';
   import { Plus, BookOpen, Trash2, Clock, Sparkles, Wand2, Rocket, Search, Skull, Heart, FileText, Upload, Sword, Feather, User } from 'lucide-svelte';
   import type { Template, StoryMode, POV } from '$lib/types';
   import SetupWizard from '../wizard/SetupWizard.svelte';
@@ -83,7 +84,11 @@
 
   async function deleteStory(storyId: string, event: MouseEvent) {
     event.stopPropagation();
-    if (confirm('Are you sure you want to delete this story?')) {
+    const confirmed = await ask('Are you sure you want to delete this story? This action cannot be undone.', {
+      title: 'Delete Story',
+      kind: 'warning',
+    });
+    if (confirmed) {
       await story.deleteStory(storyId);
     }
   }
