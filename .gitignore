@@ -2,37 +2,97 @@
 .env
 .env.local
 .env.*.local
+.env.production
+.env.development
 
 # Dependencies
 node_modules/
+.pnpm-store/
 
 # Build outputs
 dist/
 build/
 .svelte-kit/
+.output/
 
 # Rust/Tauri
 src-tauri/target/
+src-tauri/gen/
 *.db
 *.db-journal
+*.db-wal
+*.db-shm
+
+# Android
+*.apk
+*.aab
+*.keystore
+*.jks
+*.key
+src-tauri/gen/android/.gradle/
+src-tauri/gen/android/build/
+src-tauri/gen/android/app/build/
+src-tauri/gen/android/local.properties
+
+# iOS
+src-tauri/gen/apple/build/
+*.xcworkspace
+*.xcuserdata/
+Pods/
 
 # IDE
 .idea/
 *.swp
 *.swo
 *~
+.vscode/
+*.sublime-project
+*.sublime-workspace
 
 # OS
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+desktop.ini
 
 # Logs
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# Local development
-.vscode/settings.json
+# Test & Coverage
+coverage/
+.nyc_output/
+*.lcov
 
+# Cache
+.cache/
+.parcel-cache/
+.turbo/
+*.tsbuildinfo
+
+# Debug
+*.pdb
+*.dSYM/
+
+# Local/temp files
+*.local
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Release artifacts (keep in releases folder or CI)
+releases/
+
+# Project-specific
 sun2022.png
 sunicon.jpeg
 sun4.jpg
