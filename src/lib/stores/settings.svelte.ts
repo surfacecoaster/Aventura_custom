@@ -428,6 +428,7 @@ export function getDefaultAgenticRetrievalSettings(): AgenticRetrievalSettings {
 // Timeline Fill service settings (per design doc section 3.1.4: Static Retrieval)
 export interface TimelineFillSettings {
   enabled: boolean;
+  mode: 'static' | 'agentic';  // 'static' is default, 'agentic' for tool-calling retrieval
   model: string;
   temperature: number;
   maxQueries: number;
@@ -438,6 +439,7 @@ export interface TimelineFillSettings {
 export function getDefaultTimelineFillSettings(): TimelineFillSettings {
   return {
     enabled: true, // Default: enabled (this is the default over agentic retrieval)
+    mode: 'static', // Default: static timeline fill (one-time AI call pattern)
     model: 'x-ai/grok-4.1-fast',
     temperature: 0.3,
     maxQueries: 5,

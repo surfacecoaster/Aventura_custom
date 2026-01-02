@@ -617,15 +617,20 @@ class AIService {
   }
 
   /**
-   * Determine if agentic retrieval should be used based on story size.
-   * Returns true if chapters exceed threshold and agentic retrieval is enabled.
+   * Determine if agentic retrieval should be used based on timeline fill mode.
+   * Returns true if timeline fill is enabled and mode is set to 'agentic'.
    */
   shouldUseAgenticRetrieval(chapters: Chapter[]): boolean {
-    const agenticSettings = settings.systemServicesSettings.agenticRetrieval;
-    if (!agenticSettings?.enabled) {
+    const timelineFillSettings = settings.systemServicesSettings.timelineFill;
+
+    // If timeline fill is disabled, no retrieval
+    if (!timelineFillSettings?.enabled) {
       return false;
     }
-    return chapters.length > (agenticSettings.agenticThreshold ?? 30);
+
+    // Check the mode setting (default to 'static' for backwards compatibility)
+    const mode = timelineFillSettings.mode ?? 'static';
+    return mode === 'agentic';
   }
 
   /**
@@ -710,25 +715,19 @@ class AIService {
 
   /**
    * Determine if timeline fill should be used for memory retrieval.
-   * Timeline fill is the default; agentic retrieval is used only if explicitly enabled
-   * and the story is long enough (chapters > threshold).
+   * Uses the mode setting: 'static' (default) or 'agentic'.
    */
   shouldUseTimelineFill(chapters: Chapter[]): boolean {
     const timelineFillSettings = settings.systemServicesSettings.timelineFill;
-    const agenticSettings = settings.systemServicesSettings.agenticRetrieval;
 
     // If timeline fill is disabled, don't use it
     if (!timelineFillSettings?.enabled) {
       return false;
     }
 
-    // If agentic retrieval is enabled AND we're past the threshold, use agentic instead
-    if (agenticSettings?.enabled && chapters.length > (agenticSettings.agenticThreshold ?? 30)) {
-      return false;
-    }
-
-    // Default: use timeline fill
-    return true;
+    // Check the mode setting (default to 'static' for backwards compatibility)
+    const mode = timelineFillSettings.mode ?? 'static';
+    return mode === 'static';
   }
 
   /**

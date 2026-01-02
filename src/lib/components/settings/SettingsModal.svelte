@@ -1386,7 +1386,7 @@
                 <Clock class="h-4 w-4 text-cyan-400" />
                 <div>
                   <h3 class="text-sm font-medium text-surface-200">Timeline Fill</h3>
-                  <p class="text-xs text-surface-500">Retrieves context from past chapters (default)</p>
+                  <p class="text-xs text-surface-500">Retrieves context from past chapters</p>
                 </div>
               </button>
               <div class="flex items-center gap-2">
@@ -1429,232 +1429,224 @@
               <div class="mt-3 space-y-3">
                 <div class="card bg-surface-900 p-3">
                   <p class="text-xs text-surface-400 mb-3">
-                    Timeline Fill generates targeted questions about past chapters based on the current scene,
-                    then retrieves answers to inject into the narrator's context. This is the default
-                    memory retrieval method (over agentic retrieval).
+                    Timeline Fill retrieves context from past chapters to maintain story consistency.
+                    Choose between static (faster, one-shot queries) or agentic (iterative tool-calling) mode.
                   </p>
 
-                  <!-- Agentic Timeline Fill -->
-                  <div class="mb-3 border-t border-surface-700 pt-3">
-                    <div class="flex items-center justify-between">
-                      <div>
-                        <p class="text-xs font-medium text-surface-300">Agentic Timeline Fill</p>
-                        <p class="text-xs text-surface-500">
-                          Uses tool-calling retrieval when chapters exceed the threshold.
-                        </p>
-                      </div>
-                      <div class="flex items-center gap-2">
-                        <button
-                          class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
-                          class:bg-accent-600={settings.systemServicesSettings.agenticRetrieval.enabled}
-                          class:bg-surface-600={!settings.systemServicesSettings.agenticRetrieval.enabled}
-                          onclick={async () => {
-                            settings.systemServicesSettings.agenticRetrieval.enabled =
-                              !settings.systemServicesSettings.agenticRetrieval.enabled;
-                            await settings.saveSystemServicesSettings();
-                          }}
-                          aria-label="Toggle agentic timeline fill"
-                        >
-                          <span
-                            class="inline-block h-3 w-3 transform rounded-full bg-white transition-transform"
-                            class:translate-x-5={settings.systemServicesSettings.agenticRetrieval.enabled}
-                            class:translate-x-1={!settings.systemServicesSettings.agenticRetrieval.enabled}
-                          ></span>
-                        </button>
-                        <button
-                          class="text-xs text-accent-400 hover:text-accent-300 flex items-center gap-1"
-                          onclick={() => settings.resetAgenticRetrievalSettings()}
-                        >
-                          <RotateCcw class="h-3 w-3" />
-                          Reset
-                        </button>
-                      </div>
-                    </div>
-
-                    {#if settings.systemServicesSettings.agenticRetrieval.enabled}
-                      <div class="mt-3 space-y-3">
-                        <div class="grid grid-cols-2 gap-3">
-                          <div>
-                            <label class="mb-1 block text-xs font-medium text-surface-400">Model</label>
-                            <input
-                              type="text"
-                              bind:value={settings.systemServicesSettings.agenticRetrieval.model}
-                              onblur={() => settings.saveSystemServicesSettings()}
-                              placeholder="minimax/minimax-m2.1"
-                              class="input text-sm"
-                            />
-                          </div>
-                          <div>
-                            <label class="mb-1 block text-xs font-medium text-surface-400">
-                              Temperature: {settings.systemServicesSettings.agenticRetrieval.temperature.toFixed(2)}
-                            </label>
-                            <input
-                              type="range"
-                              min="0"
-                              max="1"
-                              step="0.05"
-                              bind:value={settings.systemServicesSettings.agenticRetrieval.temperature}
-                              onchange={() => settings.saveSystemServicesSettings()}
-                              class="w-full h-2"
-                            />
-                          </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-3">
-                          <div>
-                            <label class="mb-1 block text-xs font-medium text-surface-400">
-                              Max Iterations: {settings.systemServicesSettings.agenticRetrieval.maxIterations}
-                            </label>
-                            <input
-                              type="range"
-                              min="3"
-                              max="30"
-                              step="1"
-                              bind:value={settings.systemServicesSettings.agenticRetrieval.maxIterations}
-                              onchange={() => settings.saveSystemServicesSettings()}
-                              class="w-full h-2"
-                            />
-                          </div>
-                          <div>
-                            <label class="mb-1 block text-xs font-medium text-surface-400">
-                              Chapter Threshold: {settings.systemServicesSettings.agenticRetrieval.agenticThreshold}
-                            </label>
-                            <input
-                              type="range"
-                              min="5"
-                              max="100"
-                              step="1"
-                              bind:value={settings.systemServicesSettings.agenticRetrieval.agenticThreshold}
-                              onchange={() => settings.saveSystemServicesSettings()}
-                              class="w-full h-2"
-                            />
-                          </div>
-                        </div>
-
-                        <div class="border-t border-surface-700 pt-3">
-                          <div class="flex items-center justify-between mb-2">
-                            <span class="text-xs font-medium text-surface-400">Agentic Prompt</span>
-                            <button
-                              class="text-xs text-accent-400 hover:text-accent-300"
-                              onclick={() => editingAgenticRetrievalPrompt = !editingAgenticRetrievalPrompt}
-                            >
-                              {editingAgenticRetrievalPrompt ? 'Close' : 'Edit'}
-                            </button>
-                          </div>
-                          {#if editingAgenticRetrievalPrompt}
-                            <textarea
-                              bind:value={settings.systemServicesSettings.agenticRetrieval.systemPrompt}
-                              onblur={() => settings.saveSystemServicesSettings()}
-                              class="input text-xs min-h-[120px] resize-y font-mono w-full"
-                              rows="6"
-                            ></textarea>
-                          {:else}
-                            <p class="text-xs text-surface-400 line-clamp-2">
-                              {settings.systemServicesSettings.agenticRetrieval.systemPrompt.slice(0, 100)}...
-                            </p>
-                          {/if}
-                        </div>
-                      </div>
-                    {/if}
-                  </div>
-
-                  <!-- Model and Temperature Row -->
-                  <div class="grid grid-cols-2 gap-3 mb-3">
-                    <div>
-                      <label class="mb-1 block text-xs font-medium text-surface-400">Model</label>
-                      <input
-                        type="text"
-                        bind:value={settings.systemServicesSettings.timelineFill.model}
-                        onblur={() => settings.saveSystemServicesSettings()}
-                        placeholder="deepseek/deepseek-v3.2"
-                        class="input text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label class="mb-1 block text-xs font-medium text-surface-400">
-                        Temperature: {settings.systemServicesSettings.timelineFill.temperature.toFixed(2)}
-                      </label>
-                      <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.05"
-                        bind:value={settings.systemServicesSettings.timelineFill.temperature}
-                        onchange={() => settings.saveSystemServicesSettings()}
-                        class="w-full h-2"
-                      />
-                    </div>
-                  </div>
-
-                  <!-- Max Queries -->
+                  <!-- Mode Selector -->
                   <div class="mb-3">
-                    <label class="mb-1 block text-xs font-medium text-surface-400">
-                      Max Queries: {settings.systemServicesSettings.timelineFill.maxQueries}
-                    </label>
-                    <input
-                      type="range"
-                      min="1"
-                      max="10"
-                      step="1"
-                      bind:value={settings.systemServicesSettings.timelineFill.maxQueries}
-                      onchange={() => settings.saveSystemServicesSettings()}
-                      class="w-full h-2"
-                    />
-                    <div class="flex justify-between text-xs text-surface-500">
-                      <span>Fewer (faster)</span>
-                      <span>More (thorough)</span>
+                    <label class="mb-2 block text-xs font-medium text-surface-400">Retrieval Mode</label>
+                    <div class="flex gap-2">
+                      <button
+                        class="flex-1 px-3 py-2 text-xs rounded-lg border transition-colors"
+                        class:bg-accent-600={settings.systemServicesSettings.timelineFill.mode === 'static'}
+                        class:border-accent-500={settings.systemServicesSettings.timelineFill.mode === 'static'}
+                        class:text-white={settings.systemServicesSettings.timelineFill.mode === 'static'}
+                        class:bg-surface-700={settings.systemServicesSettings.timelineFill.mode !== 'static'}
+                        class:border-surface-600={settings.systemServicesSettings.timelineFill.mode !== 'static'}
+                        class:text-surface-300={settings.systemServicesSettings.timelineFill.mode !== 'static'}
+                        onclick={async () => {
+                          settings.systemServicesSettings.timelineFill.mode = 'static';
+                          await settings.saveSystemServicesSettings();
+                        }}
+                      >
+                        <div class="font-medium">Static</div>
+                        <div class="text-xs opacity-75 mt-0.5">One-shot queries (default)</div>
+                      </button>
+                      <button
+                        class="flex-1 px-3 py-2 text-xs rounded-lg border transition-colors"
+                        class:bg-accent-600={settings.systemServicesSettings.timelineFill.mode === 'agentic'}
+                        class:border-accent-500={settings.systemServicesSettings.timelineFill.mode === 'agentic'}
+                        class:text-white={settings.systemServicesSettings.timelineFill.mode === 'agentic'}
+                        class:bg-surface-700={settings.systemServicesSettings.timelineFill.mode !== 'agentic'}
+                        class:border-surface-600={settings.systemServicesSettings.timelineFill.mode !== 'agentic'}
+                        class:text-surface-300={settings.systemServicesSettings.timelineFill.mode !== 'agentic'}
+                        onclick={async () => {
+                          settings.systemServicesSettings.timelineFill.mode = 'agentic';
+                          await settings.saveSystemServicesSettings();
+                        }}
+                      >
+                        <div class="font-medium">Agentic</div>
+                        <div class="text-xs opacity-75 mt-0.5">Iterative tool-calling</div>
+                      </button>
                     </div>
                   </div>
 
-                  <!-- Query Generation Prompt -->
-                  <div class="mb-3 border-t border-surface-700 pt-3">
-                    <div class="flex items-center justify-between mb-2">
-                      <span class="text-xs font-medium text-surface-400">Query Generation Prompt</span>
-                      <button
-                        class="text-xs text-accent-400 hover:text-accent-300"
-                        onclick={() => editingTimelineFillPrompt = editingTimelineFillPrompt === 'system' ? null : 'system'}
-                      >
-                        {editingTimelineFillPrompt === 'system' ? 'Close' : 'Edit'}
-                      </button>
-                    </div>
-                    {#if editingTimelineFillPrompt === 'system'}
-                      <textarea
-                        bind:value={settings.systemServicesSettings.timelineFill.systemPrompt}
-                        onblur={() => settings.saveSystemServicesSettings()}
-                        class="input text-xs min-h-[150px] resize-y font-mono w-full"
-                        rows="8"
-                      ></textarea>
-                    {:else}
-                      <p class="text-xs text-surface-400 line-clamp-2">
-                        {settings.systemServicesSettings.timelineFill.systemPrompt.slice(0, 100)}...
-                      </p>
-                    {/if}
-                  </div>
+                  {#if settings.systemServicesSettings.timelineFill.mode === 'static'}
+                    <!-- Static Mode Settings -->
+                    <div class="border-t border-surface-700 pt-3 space-y-3">
+                      <!-- Model and Temperature Row -->
+                      <div class="grid grid-cols-2 gap-3">
+                        <div>
+                          <label class="mb-1 block text-xs font-medium text-surface-400">Model</label>
+                          <input
+                            type="text"
+                            bind:value={settings.systemServicesSettings.timelineFill.model}
+                            onblur={() => settings.saveSystemServicesSettings()}
+                            placeholder="x-ai/grok-4.1-fast"
+                            class="input text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label class="mb-1 block text-xs font-medium text-surface-400">
+                            Temperature: {settings.systemServicesSettings.timelineFill.temperature.toFixed(2)}
+                          </label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.05"
+                            bind:value={settings.systemServicesSettings.timelineFill.temperature}
+                            onchange={() => settings.saveSystemServicesSettings()}
+                            class="w-full h-2"
+                          />
+                        </div>
+                      </div>
 
-                  <!-- Query Answer Prompt -->
-                  <div class="border-t border-surface-700 pt-3">
-                    <div class="flex items-center justify-between mb-2">
-                      <span class="text-xs font-medium text-surface-400">Query Answer Prompt</span>
-                      <button
-                        class="text-xs text-accent-400 hover:text-accent-300"
-                        onclick={() => editingTimelineFillPrompt = editingTimelineFillPrompt === 'answer' ? null : 'answer'}
-                      >
-                        {editingTimelineFillPrompt === 'answer' ? 'Close' : 'Edit'}
-                      </button>
+                      <!-- Max Queries -->
+                      <div>
+                        <label class="mb-1 block text-xs font-medium text-surface-400">
+                          Max Queries: {settings.systemServicesSettings.timelineFill.maxQueries}
+                        </label>
+                        <input
+                          type="range"
+                          min="1"
+                          max="10"
+                          step="1"
+                          bind:value={settings.systemServicesSettings.timelineFill.maxQueries}
+                          onchange={() => settings.saveSystemServicesSettings()}
+                          class="w-full h-2"
+                        />
+                        <div class="flex justify-between text-xs text-surface-500">
+                          <span>Fewer (faster)</span>
+                          <span>More (thorough)</span>
+                        </div>
+                      </div>
+
+                      <!-- Query Generation Prompt -->
+                      <div class="border-t border-surface-700 pt-3">
+                        <div class="flex items-center justify-between mb-2">
+                          <span class="text-xs font-medium text-surface-400">Query Generation Prompt</span>
+                          <button
+                            class="text-xs text-accent-400 hover:text-accent-300"
+                            onclick={() => editingTimelineFillPrompt = editingTimelineFillPrompt === 'system' ? null : 'system'}
+                          >
+                            {editingTimelineFillPrompt === 'system' ? 'Close' : 'Edit'}
+                          </button>
+                        </div>
+                        {#if editingTimelineFillPrompt === 'system'}
+                          <textarea
+                            bind:value={settings.systemServicesSettings.timelineFill.systemPrompt}
+                            onblur={() => settings.saveSystemServicesSettings()}
+                            class="input text-xs min-h-[150px] resize-y font-mono w-full"
+                            rows="8"
+                          ></textarea>
+                        {:else}
+                          <p class="text-xs text-surface-400 line-clamp-2">
+                            {settings.systemServicesSettings.timelineFill.systemPrompt.slice(0, 100)}...
+                          </p>
+                        {/if}
+                      </div>
+
+                      <!-- Query Answer Prompt -->
+                      <div class="border-t border-surface-700 pt-3">
+                        <div class="flex items-center justify-between mb-2">
+                          <span class="text-xs font-medium text-surface-400">Query Answer Prompt</span>
+                          <button
+                            class="text-xs text-accent-400 hover:text-accent-300"
+                            onclick={() => editingTimelineFillPrompt = editingTimelineFillPrompt === 'answer' ? null : 'answer'}
+                          >
+                            {editingTimelineFillPrompt === 'answer' ? 'Close' : 'Edit'}
+                          </button>
+                        </div>
+                        {#if editingTimelineFillPrompt === 'answer'}
+                          <textarea
+                            bind:value={settings.systemServicesSettings.timelineFill.queryAnswerPrompt}
+                            onblur={() => settings.saveSystemServicesSettings()}
+                            class="input text-xs min-h-[100px] resize-y font-mono w-full"
+                            rows="5"
+                          ></textarea>
+                        {:else}
+                          <p class="text-xs text-surface-400 line-clamp-2">
+                            {settings.systemServicesSettings.timelineFill.queryAnswerPrompt.slice(0, 100)}...
+                          </p>
+                        {/if}
+                      </div>
                     </div>
-                    {#if editingTimelineFillPrompt === 'answer'}
-                      <textarea
-                        bind:value={settings.systemServicesSettings.timelineFill.queryAnswerPrompt}
-                        onblur={() => settings.saveSystemServicesSettings()}
-                        class="input text-xs min-h-[100px] resize-y font-mono w-full"
-                        rows="5"
-                      ></textarea>
-                    {:else}
-                      <p class="text-xs text-surface-400 line-clamp-2">
-                        {settings.systemServicesSettings.timelineFill.queryAnswerPrompt.slice(0, 100)}...
-                      </p>
-                    {/if}
-                  </div>
+                  {:else}
+                    <!-- Agentic Mode Settings -->
+                    <div class="border-t border-surface-700 pt-3 space-y-3">
+                      <div class="grid grid-cols-2 gap-3">
+                        <div>
+                          <label class="mb-1 block text-xs font-medium text-surface-400">Model</label>
+                          <input
+                            type="text"
+                            bind:value={settings.systemServicesSettings.agenticRetrieval.model}
+                            onblur={() => settings.saveSystemServicesSettings()}
+                            placeholder="minimax/minimax-m2.1"
+                            class="input text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label class="mb-1 block text-xs font-medium text-surface-400">
+                            Temperature: {settings.systemServicesSettings.agenticRetrieval.temperature.toFixed(2)}
+                          </label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.05"
+                            bind:value={settings.systemServicesSettings.agenticRetrieval.temperature}
+                            onchange={() => settings.saveSystemServicesSettings()}
+                            class="w-full h-2"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label class="mb-1 block text-xs font-medium text-surface-400">
+                          Max Iterations: {settings.systemServicesSettings.agenticRetrieval.maxIterations}
+                        </label>
+                        <input
+                          type="range"
+                          min="3"
+                          max="30"
+                          step="1"
+                          bind:value={settings.systemServicesSettings.agenticRetrieval.maxIterations}
+                          onchange={() => settings.saveSystemServicesSettings()}
+                          class="w-full h-2"
+                        />
+                        <div class="flex justify-between text-xs text-surface-500">
+                          <span>Fewer iterations</span>
+                          <span>More thorough</span>
+                        </div>
+                      </div>
+
+                      <div class="border-t border-surface-700 pt-3">
+                        <div class="flex items-center justify-between mb-2">
+                          <span class="text-xs font-medium text-surface-400">Agentic Prompt</span>
+                          <button
+                            class="text-xs text-accent-400 hover:text-accent-300"
+                            onclick={() => editingAgenticRetrievalPrompt = !editingAgenticRetrievalPrompt}
+                          >
+                            {editingAgenticRetrievalPrompt ? 'Close' : 'Edit'}
+                          </button>
+                        </div>
+                        {#if editingAgenticRetrievalPrompt}
+                          <textarea
+                            bind:value={settings.systemServicesSettings.agenticRetrieval.systemPrompt}
+                            onblur={() => settings.saveSystemServicesSettings()}
+                            class="input text-xs min-h-[120px] resize-y font-mono w-full"
+                            rows="6"
+                          ></textarea>
+                        {:else}
+                          <p class="text-xs text-surface-400 line-clamp-2">
+                            {settings.systemServicesSettings.agenticRetrieval.systemPrompt.slice(0, 100)}...
+                          </p>
+                        {/if}
+                      </div>
+                    </div>
+                  {/if}
                 </div>
               </div>
             {/if}
