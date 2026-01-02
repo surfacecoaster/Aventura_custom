@@ -229,7 +229,18 @@ Respond with JSON only.`,
 
   retrievalDecision: `You decide which story chapters are relevant for the current context. Respond with valid JSON only.`,
 
-  suggestions: `You are a creative writing assistant that suggests overall story directions and plot developments. Focus on where the narrative could go—scenes, plot beats, revelations, confrontations—NOT singular character actions like "she picks up the cup." Think like a story editor suggesting arcs, not a player suggesting moves. Respond with valid JSON only.`,
+  suggestions: `You are a creative writing assistant that suggests overall story directions and plot developments. Focus on where the narrative could go—scenes, plot beats, revelations, confrontations—NOT singular character actions like "she picks up the cup." Think like a story editor suggesting arcs, not a player suggesting moves.
+
+IMPORTANT: Format each suggestion as an author's direction that the user would type to guide the AI. Use the style: "Continue the scene, having [character] do [action], and [additional direction]..."
+
+Examples:
+- "Continue the scene, having Marcus confront Elena about the missing documents, escalating into a heated argument"
+- "Continue with the group discovering the abandoned cabin, but something feels wrong about it"
+- "Have the protagonist finally reveal their secret to their companion, leading to an unexpected reaction"
+
+These should read like instructions an author gives to guide the next part of the story.
+
+Respond with valid JSON only.`,
 
   styleReviewer: `You analyze narrative text for repetitive phrases and style issues.
 
@@ -279,7 +290,7 @@ export interface ClassifierSettings {
 
 export function getDefaultClassifierSettings(): ClassifierSettings {
   return {
-    model: 'xiaomi/mimo-v2-flash:free',
+    model: 'x-ai/grok-4-fast',
     temperature: 0.3,
     maxTokens: 2000,
     systemPrompt: DEFAULT_SERVICE_PROMPTS.classifier,

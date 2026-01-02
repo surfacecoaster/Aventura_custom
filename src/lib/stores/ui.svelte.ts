@@ -1,5 +1,6 @@
 import type { ActivePanel, SidebarTab, UIState, EntryType } from '$lib/types';
 import type { ActionChoice } from '$lib/services/ai/actionChoices';
+import type { StorySuggestion } from '$lib/services/ai/suggestions';
 import type { StyleReviewResult } from '$lib/services/ai/styleReviewer';
 import type { EntryRetrievalResult, ActivationTracker } from '$lib/services/ai/entryRetrieval';
 import { SimpleActivationTracker } from '$lib/services/ai/entryRetrieval';
@@ -17,6 +18,12 @@ export interface GenerationError {
 interface PersistedActionChoices {
   storyId: string;
   choices: ActionChoice[];
+}
+
+// Persisted suggestions structure
+interface PersistedSuggestions {
+  storyId: string;
+  suggestions: StorySuggestion[];
 }
 
 // UI State using Svelte 5 runes
@@ -38,6 +45,10 @@ class UIStore {
   actionChoices = $state<ActionChoice[]>([]);
   actionChoicesLoading = $state(false);
   pendingActionChoice = $state<string | null>(null);
+
+  // Creative writing suggestions (displayed after narration)
+  suggestions = $state<StorySuggestion[]>([]);
+  suggestionsLoading = $state(false);
 
   // Style reviewer state
   messagesSinceLastStyleReview = $state(0);
@@ -190,6 +201,50 @@ class UIStore {
 
   clearPendingActionChoice() {
     this.pendingActionChoice = null;
+  }
+
+  // Suggestions methods (creative writing mode)
+  setSuggestions(suggestions: StorySuggestion[], storyId?: string) {
+    this.suggestions = suggestions;
+    // Persist to database if we have a story ID
+    if (storyId && suggestions.length > 0) {
+      const data: PersistedSuggestions = { storyId, suggestions };
+      database.setSetting('story_suggestions', JSON.stringify(data)).catch(err => {
+        console.warn('[UI] Failed to persist suggestions:', err);
+      });
+    }
+  }
+
+  setSuggestionsLoading(loading: boolean) {
+    this.suggestionsLoading = loading;
+  }
+
+  clearSuggestions() {
+    this.suggestions = [];
+    // Clear persisted suggestions
+    database.setSetting('story_suggestions', '').catch(err => {
+      console.warn('[UI] Failed to clear persisted suggestions:', err);
+    });
+  }
+
+  /**
+   * Load persisted suggestions for a story.
+   * Called when a story is loaded.
+   */
+  async loadSuggestions(storyId: string) {
+    try {
+      const data = await database.getSetting('story_suggestions');
+      if (data) {
+        const parsed: PersistedSuggestions = JSON.parse(data);
+        // Only restore if it's for the same story
+        if (parsed.storyId === storyId && parsed.suggestions.length > 0) {
+          this.suggestions = parsed.suggestions;
+          console.log('[UI] Restored suggestions for story:', storyId);
+        }
+      }
+    } catch (err) {
+      console.warn('[UI] Failed to load persisted suggestions:', err);
+    }
   }
 
   // Retry callback management

@@ -293,6 +293,11 @@ class StoryStore {
       await ui.loadActionChoices(storyId);
     }
 
+    // Load persisted suggestions for creative-writing mode
+    if (story.mode === 'creative-writing') {
+      await ui.loadSuggestions(storyId);
+    }
+
     // Emit event
     emitStoryLoaded(storyId, story.mode);
   }

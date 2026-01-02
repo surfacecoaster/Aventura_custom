@@ -7,7 +7,6 @@
   import { SimpleActivationTracker } from '$lib/services/ai/entryRetrieval';
   import { Send, Wand2, MessageSquare, Brain, Sparkles, Feather, RefreshCw, X, PenLine } from 'lucide-svelte';
   import type { Chapter } from '$lib/types';
-  import type { StorySuggestion } from '$lib/services/ai/suggestions';
   import Suggestions from './Suggestions.svelte';
   import {
     emitUserInput,
@@ -24,8 +23,6 @@
 
   let inputValue = $state('');
   let actionType = $state<'do' | 'say' | 'think' | 'story' | 'free'>('do');
-  let suggestions = $state<StorySuggestion[]>([]);
-  let suggestionsLoading = $state(false);
   let isRawActionChoice = $state(false); // True when submitting an AI-generated choice (no prefix/suffix)
 
   // In creative writing mode, show different input style
@@ -60,11 +57,11 @@
    */
   async function refreshSuggestions() {
     if (!isCreativeMode || story.entries.length === 0) {
-      suggestions = [];
+      ui.clearSuggestions();
       return;
     }
 
-    suggestionsLoading = true;
+    ui.setSuggestionsLoading(true);
     try {
       // Use only the lorebook entries that were activated for the previous response
       // Extract the Entry objects from RetrievedEntry wrappers
@@ -76,16 +73,16 @@
         story.currentStory?.genre,
         activeLorebookEntries
       );
-      suggestions = result.suggestions;
-      log('Suggestions refreshed:', suggestions.length, 'with', activeLorebookEntries.length, 'active lorebook entries');
+      ui.setSuggestions(result.suggestions, story.currentStory?.id);
+      log('Suggestions refreshed:', result.suggestions.length, 'with', activeLorebookEntries.length, 'active lorebook entries');
 
       // Emit SuggestionsReady event
-      emitSuggestionsReady(suggestions.map(s => ({ text: s.text, type: s.type })));
+      emitSuggestionsReady(result.suggestions.map(s => ({ text: s.text, type: s.type })));
     } catch (error) {
       log('Failed to generate suggestions:', error);
-      suggestions = [];
+      ui.clearSuggestions();
     } finally {
-      suggestionsLoading = false;
+      ui.setSuggestionsLoading(false);
     }
   }
 
@@ -731,7 +728,7 @@
     ui.clearGenerationError();
 
     // Clear suggestions immediately when user sends a message
-    suggestions = [];
+    ui.clearSuggestions();
 
     // Build action content:
     // - Creative writing mode: use raw input as direction
@@ -848,8 +845,8 @@
   {#if isCreativeMode}
     <!-- Creative Writing Mode: Suggestions -->
     <Suggestions
-      {suggestions}
-      loading={suggestionsLoading}
+      suggestions={ui.suggestions}
+      loading={ui.suggestionsLoading}
       onSelect={handleSuggestionSelect}
       onRefresh={refreshSuggestions}
     />
