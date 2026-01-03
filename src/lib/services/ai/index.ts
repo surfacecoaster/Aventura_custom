@@ -96,8 +96,7 @@ class AIService {
       extraBody.reasoning = { max_tokens: 10000 };
     } else {
       // Explicitly disable reasoning for models that support it
-      // Per OpenRouter docs: effort: "none" disables reasoning entirely
-      extraBody.reasoning = { effort: 'none' };
+      extraBody.reasoning = { enabled: false };
     }
 
     log('Messages built:', {
@@ -246,8 +245,7 @@ class AIService {
       extraBody.reasoning = { max_tokens: 10000 };
     } else {
       // Explicitly disable reasoning for models that support it
-      // Per OpenRouter docs: effort: "none" disables reasoning entirely
-      extraBody.reasoning = { effort: 'none' };
+      extraBody.reasoning = { enabled: false };
     }
 
     log('Starting stream with', {

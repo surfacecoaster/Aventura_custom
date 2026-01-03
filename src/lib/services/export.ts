@@ -1,7 +1,7 @@
 import { save, open } from '@tauri-apps/plugin-dialog';
 import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
 import { database } from './database';
-import type { Story, StoryEntry, Character, Location, Item, StoryBeat } from '$lib/types';
+import type { Story, StoryEntry, Character, Location, Item, StoryBeat, Entry } from '$lib/types';
 
 export interface AventuraExport {
   version: string;
@@ -12,10 +12,11 @@ export interface AventuraExport {
   locations: Location[];
   items: Item[];
   storyBeats: StoryBeat[];
+  lorebookEntries?: Entry[]; // Added in v1.1.0
 }
 
 class ExportService {
-  private readonly VERSION = '1.0.0';
+  private readonly VERSION = '1.1.0';
 
   // Export to Aventura format (.avt - JSON)
   async exportToAventura(
@@ -24,7 +25,8 @@ class ExportService {
     characters: Character[],
     locations: Location[],
     items: Item[],
-    storyBeats: StoryBeat[]
+    storyBeats: StoryBeat[],
+    lorebookEntries: Entry[] = []
   ): Promise<boolean> {
     const exportData: AventuraExport = {
       version: this.VERSION,
@@ -35,6 +37,7 @@ class ExportService {
       locations,
       items,
       storyBeats,
+      lorebookEntries,
     };
 
     const filePath = await save({
@@ -290,6 +293,35 @@ class ExportService {
             status: beat.status,
             triggeredAt: beat.triggeredAt,
             metadata: beat.metadata,
+          });
+        }
+      }
+
+      // Import lorebook entries (added in v1.1.0)
+      if (data.lorebookEntries) {
+        for (const entry of data.lorebookEntries) {
+          const newEntryId = crypto.randomUUID();
+          oldToNewId.set(entry.id, newEntryId);
+
+          await database.addEntry({
+            id: newEntryId,
+            storyId: newStoryId,
+            name: entry.name,
+            type: entry.type,
+            description: entry.description,
+            hiddenInfo: entry.hiddenInfo,
+            aliases: entry.aliases || [],
+            state: entry.state,
+            adventureState: entry.adventureState,
+            creativeState: entry.creativeState,
+            injection: entry.injection,
+            firstMentioned: entry.firstMentioned ? (oldToNewId.get(entry.firstMentioned) ?? entry.firstMentioned) : null,
+            lastMentioned: entry.lastMentioned ? (oldToNewId.get(entry.lastMentioned) ?? entry.lastMentioned) : null,
+            mentionCount: entry.mentionCount || 0,
+            createdBy: entry.createdBy || 'import',
+            createdAt: entry.createdAt || Date.now(),
+            updatedAt: Date.now(),
+            loreManagementBlacklisted: entry.loreManagementBlacklisted || false,
           });
         }
       }

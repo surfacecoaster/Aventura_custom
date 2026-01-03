@@ -16,7 +16,8 @@
       story.characters,
       story.locations,
       story.items,
-      story.storyBeats
+      story.storyBeats,
+      story.lorebookEntries
     );
   }
 
