@@ -29,6 +29,11 @@
   function handleKeydown(event: KeyboardEvent) {
     if (ui.actionChoices.length === 0) return;
 
+    const target = (event.target ?? document.activeElement) as HTMLElement | null;
+    if (target && (target.tagName === 'TEXTAREA' || target.tagName === 'INPUT' || target.isContentEditable)) {
+      return;
+    }
+
     const keyNum = parseInt(event.key);
     if (keyNum >= 1 && keyNum <= ui.actionChoices.length) {
       event.preventDefault();

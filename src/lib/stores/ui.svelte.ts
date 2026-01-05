@@ -6,6 +6,8 @@ import type { EntryRetrievalResult, ActivationTracker } from '$lib/services/ai/e
 import { SimpleActivationTracker } from '$lib/services/ai/entryRetrieval';
 import { database } from '$lib/services/database';
 
+type ActionInputType = 'do' | 'say' | 'think' | 'story' | 'free';
+
 // Backup for retry functionality - captures state before each user message
 export interface RetryBackup {
   storyId: string;
@@ -19,6 +21,9 @@ export interface RetryBackup {
   lorebookEntries: Entry[];
   // The user's input to re-trigger
   userActionContent: string;
+  rawInput: string;
+  actionType: ActionInputType;
+  wasRawActionChoice: boolean;
   // Lorebook activation tracking data (for stickiness preservation)
   activationData: Record<string, number>;
   storyPosition: number;
@@ -214,7 +219,10 @@ class UIStore {
     items: Item[],
     storyBeats: StoryBeat[],
     lorebookEntries: Entry[],
-    userActionContent: string
+    userActionContent: string,
+    rawInput: string,
+    actionType: ActionInputType,
+    wasRawActionChoice: boolean
   ) {
     // Clear old backup and create new one
     this.retryBackup = {
@@ -228,6 +236,9 @@ class UIStore {
       storyBeats: [...storyBeats],
       lorebookEntries: [...lorebookEntries],
       userActionContent,
+      rawInput,
+      actionType,
+      wasRawActionChoice,
       // Capture activation data for lorebook stickiness preservation
       activationData: { ...this.activationData },
       storyPosition: this.currentStoryPosition,
@@ -277,6 +288,7 @@ class UIStore {
       this.retryBackup = {
         ...this.retryBackup,
         userActionContent: newContent,
+        rawInput: newContent,
       };
       console.log('[UI] Retry backup content updated', {
         newContent: newContent.substring(0, 50),

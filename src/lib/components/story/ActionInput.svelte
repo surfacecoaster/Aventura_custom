@@ -5,7 +5,7 @@
   import { settings } from '$lib/stores/settings.svelte';
   import { aiService } from '$lib/services/ai';
   import { SimpleActivationTracker } from '$lib/services/ai/entryRetrieval';
-  import { Send, Wand2, MessageSquare, Brain, Sparkles, Feather, RefreshCw, X, PenLine, RotateCcw } from 'lucide-svelte';
+  import { Send, Wand2, MessageSquare, Brain, Sparkles, Feather, RefreshCw, X, PenLine, RotateCcw, Square } from 'lucide-svelte';
   import type { Chapter } from '$lib/types';
   import Suggestions from './Suggestions.svelte';
   import GrammarCheck from './GrammarCheck.svelte';
@@ -25,6 +25,8 @@
   let inputValue = $state('');
   let actionType = $state<'do' | 'say' | 'think' | 'story' | 'free'>('do');
   let isRawActionChoice = $state(false); // True when submitting an AI-generated choice (no prefix/suffix)
+  let stopRequested = false;
+  let activeAbortController: AbortController | null = null;
 
   // In creative writing mode, show different input style
   const isCreativeMode = $derived(story.storyMode === 'creative-writing');
@@ -395,6 +397,9 @@
       return;
     }
 
+    stopRequested = false;
+    activeAbortController = new AbortController();
+
     ui.setGenerating(true);
     ui.clearGenerationError(); // Clear any previous error
     ui.clearActionChoices(story.currentStory?.id); // Clear previous action choices
@@ -569,6 +574,11 @@
         log('All retrieval tasks complete');
       }
 
+      if (stopRequested) {
+        log('Generation stopped before streaming started');
+        return;
+      }
+
       // Combine retrieved contexts
       const combinedRetrievedContext = [retrievedChapterContext, lorebookContext]
         .filter(Boolean)
@@ -615,8 +625,13 @@
           currentStoryRef,
           true,
           ui.lastStyleReview,
-          combinedRetrievedContext
+          combinedRetrievedContext,
+          activeAbortController?.signal
         )) {
+          if (stopRequested) {
+            log('Stop requested during streaming');
+            break;
+          }
           chunkCount++;
           if (chunk.content) {
             fullResponse += chunk.content;
@@ -653,6 +668,11 @@
       // End streaming immediately to prevent duplicate display
       // (StreamingEntry would show alongside the saved entry otherwise)
       ui.endStreaming();
+
+      if (stopRequested) {
+        log('Generation stopped after streaming, skipping save');
+        return;
+      }
 
       // Save the complete response as a story entry
       if (fullResponse.trim()) {
@@ -736,6 +756,10 @@
         });
       }
     } catch (error) {
+      if (stopRequested || (error instanceof Error && error.name === 'AbortError')) {
+        log('Generation aborted by user');
+        return;
+      }
       log('Generation failed', error);
       console.error('Generation failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to generate response. Please try again.';
@@ -751,6 +775,8 @@
     } finally {
       ui.endStreaming();
       ui.setGenerating(false);
+      activeAbortController = null;
+      stopRequested = false;
       log('Generation complete, UI reset');
     }
   }
@@ -776,17 +802,19 @@
     // - Creative writing mode: use raw input as direction
     // - Raw action choice (from ActionChoices): use as-is (already formatted by AI)
     // - Adventure mode: apply action prefixes/suffixes
+    const rawInput = inputValue.trim();
+    const wasRawActionChoice = isRawActionChoice;
     let content: string;
-    if (isCreativeMode || isRawActionChoice) {
-      content = inputValue.trim();
+    if (isCreativeMode || wasRawActionChoice) {
+      content = rawInput;
     } else {
-      content = actionPrefixes[actionType] + inputValue.trim() + actionSuffixes[actionType];
+      content = actionPrefixes[actionType] + rawInput + actionSuffixes[actionType];
     }
 
     // Reset the raw action choice flag
     isRawActionChoice = false;
 
-    log('Action content built', { content, mode: isCreativeMode ? 'creative' : 'adventure', wasRawChoice: isRawActionChoice });
+    log('Action content built', { content, mode: isCreativeMode ? 'creative' : 'adventure', wasRawChoice: wasRawActionChoice });
 
     // Create a backup of the current state BEFORE adding the user action
     // This allows "retry last message" to restore to this exact point
@@ -799,7 +827,10 @@
         story.items,
         story.storyBeats,
         story.lorebookEntries,
-        content
+        content,
+        rawInput,
+        actionType,
+        wasRawActionChoice
       );
     }
 
@@ -823,6 +854,64 @@
     } else {
       log('No API key configured');
       await story.addEntry('system', 'Please configure your API key in settings to enable AI generation.');
+    }
+  }
+
+  /**
+   * Stop the active generation and restore input state.
+   */
+  async function handleStopGeneration() {
+    log('handleStopGeneration called', { hasBackup: !!ui.retryBackup, isGenerating: ui.isGenerating });
+
+    if (!ui.isGenerating) {
+      log('Stop ignored (not generating)');
+      return;
+    }
+
+    stopRequested = true;
+    activeAbortController?.abort();
+
+    ui.endStreaming();
+    ui.setGenerating(false);
+
+    const backup = ui.retryBackup;
+    if (!backup || !story.currentStory) {
+      log('No valid backup for stop restore');
+      return;
+    }
+
+    if (backup.storyId !== story.currentStory.id) {
+      log('Stop backup is for different story, clearing');
+      ui.clearRetryBackup();
+      return;
+    }
+
+    // Clear any error state and stale UI data
+    ui.clearGenerationError();
+    ui.clearSuggestions(story.currentStory?.id);
+    ui.clearActionChoices(story.currentStory?.id);
+    ui.restoreActivationData(backup.activationData, backup.storyPosition);
+    ui.setLastLorebookRetrieval(null);
+
+    try {
+      await story.restoreFromRetryBackup({
+        entries: backup.entries,
+        characters: backup.characters,
+        locations: backup.locations,
+        items: backup.items,
+        storyBeats: backup.storyBeats,
+        lorebookEntries: backup.lorebookEntries,
+      });
+
+      await tick();
+      actionType = backup.actionType;
+      isRawActionChoice = backup.wasRawActionChoice;
+      inputValue = backup.rawInput;
+    } catch (error) {
+      log('Stop restore failed', error);
+      console.error('Stop restore failed:', error);
+    } finally {
+      ui.clearRetryBackup();
     }
   }
 
@@ -928,7 +1017,7 @@
       log('User action re-added', { entryId: userActionEntry.id });
 
       // Emit UserInput event
-      emitUserInput(backup.userActionContent, isCreativeMode ? 'direction' : actionType);
+      emitUserInput(backup.userActionContent, isCreativeMode ? 'direction' : backup.actionType);
 
       // Wait for state to sync again
       await tick();
@@ -1034,14 +1123,24 @@
           disabled={ui.isGenerating}
         ></textarea>
       </div>
-      <button
-        onclick={handleSubmit}
-        disabled={!inputValue.trim() || ui.isGenerating}
-        class="btn btn-primary self-end px-3 sm:px-4 py-3 min-h-[44px] min-w-[44px]"
-        title="Continue story"
-      >
-        <Feather class="h-5 w-5" />
-      </button>
+      {#if ui.isGenerating}
+        <button
+          onclick={handleStopGeneration}
+          class="btn self-end px-3 sm:px-4 py-3 min-h-[44px] min-w-[44px] bg-red-500/20 text-red-400 hover:bg-red-500/30"
+          title="Stop generation"
+        >
+          <Square class="h-5 w-5" />
+        </button>
+      {:else}
+        <button
+          onclick={handleSubmit}
+          disabled={!inputValue.trim() || ui.isGenerating}
+          class="btn btn-primary self-end px-3 sm:px-4 py-3 min-h-[44px] min-w-[44px]"
+          title="Continue story"
+        >
+          <Feather class="h-5 w-5" />
+        </button>
+      {/if}
     </div>
   {:else}
     <!-- Adventure Mode: Action type buttons -->
@@ -1108,13 +1207,23 @@
           disabled={ui.isGenerating}
         ></textarea>
       </div>
-      <button
-        onclick={handleSubmit}
-        disabled={!inputValue.trim() || ui.isGenerating}
-        class="btn btn-primary self-end px-3 sm:px-4 py-3 min-h-[44px] min-w-[44px]"
-      >
-        <Send class="h-5 w-5" />
-      </button>
+      {#if ui.isGenerating}
+        <button
+          onclick={handleStopGeneration}
+          class="btn self-end px-3 sm:px-4 py-3 min-h-[44px] min-w-[44px] bg-red-500/20 text-red-400 hover:bg-red-500/30"
+          title="Stop generation"
+        >
+          <Square class="h-5 w-5" />
+        </button>
+      {:else}
+        <button
+          onclick={handleSubmit}
+          disabled={!inputValue.trim() || ui.isGenerating}
+          class="btn btn-primary self-end px-3 sm:px-4 py-3 min-h-[44px] min-w-[44px]"
+        >
+          <Send class="h-5 w-5" />
+        </button>
+      {/if}
     </div>
   {/if}
 </div>

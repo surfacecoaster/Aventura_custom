@@ -152,7 +152,8 @@ class AIService {
     story?: Story | null,
     useTieredContext = true,
     styleReview?: StyleReviewResult | null,
-    retrievedChapterContext?: string | null
+    retrievedChapterContext?: string | null,
+    signal?: AbortSignal
   ): AsyncIterable<StreamChunk> {
     log('streamResponse called', {
       entriesCount: entries.length,
@@ -296,6 +297,7 @@ class AIService {
       temperature: settings.apiSettings.temperature,
       maxTokens: settings.apiSettings.maxTokens,
       extraBody: Object.keys(extraBody).length > 0 ? extraBody : undefined,
+      signal,
     })) {
       chunkCount++;
       totalContent += chunk.content.length;

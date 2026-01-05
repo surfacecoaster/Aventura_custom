@@ -105,6 +105,7 @@ export interface GenerationRequest {
   maxTokens?: number;
   stopSequences?: string[];
   extraBody?: Record<string, unknown>; // For provider-specific options like reasoning
+  signal?: AbortSignal;
 }
 
 // Extended request for agentic tool-calling flows

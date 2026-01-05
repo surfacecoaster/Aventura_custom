@@ -71,6 +71,7 @@ export class OpenAIProvider implements AIProvider {
         'X-Title': 'Aventura',
       },
       body: JSON.stringify(requestBody),
+      signal: request.signal,
     });
 
     log('Response received', { status: response.status, ok: response.ok });
