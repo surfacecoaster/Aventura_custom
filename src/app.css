@@ -9,6 +9,10 @@
 @layer base {
   /* Default/Dark Theme (base) */
   :root {
+    /* Default font sizes (medium) */
+    --font-size-base: 1rem;
+    --font-size-lg: 1.125rem;
+
     /* Surface colors (backgrounds, borders) */
     --color-surface-50: #f8fafc;
     --color-surface-100: #f1f5f9;
@@ -58,7 +62,6 @@
     --crt-flicker: none;
     --font-story: 'Georgia', 'Cambria', serif;
   }
-
   /* =============================================
      LIGHT THEME (Paper)
      Clean paper-like backgrounds with high contrast text
@@ -1510,9 +1513,9 @@ html, body {
 
   /* Larger input areas */
   .input {
-    @apply min-h-[44px] text-base;
+    @apply min-h-[44px];
     /* Prevent zoom on focus on iOS */
-    font-size: 16px !important;
+    font-size: max(var(--font-size-base, 1rem), 16px) !important;
   }
 
   textarea.input {
@@ -1521,7 +1524,8 @@ html, body {
 
   /* Story entries - more compact on mobile */
   .story-text {
-    @apply text-base leading-relaxed;
+    font-size: var(--font-size-base, 1rem);
+    line-height: 1.6;
   }
 
   /* Prevent text selection on interactive elements */
@@ -1547,7 +1551,7 @@ html, body {
 @media (max-width: 475px) {
   /* Slightly smaller text for very small screens */
   .story-text {
-    @apply text-[15px];
+    font-size: calc(var(--font-size-base, 1rem) * 0.9375);
   }
 }
 
@@ -1631,7 +1635,7 @@ html, body {
 
   /* Smaller text */
   .story-text {
-    @apply text-sm;
+    font-size: calc(var(--font-size-base, 1rem) * 0.875);
   }
 }
 

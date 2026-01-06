@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Font Size Test</title>
+    <style>
+        :root {
+            /* Default font sizes (medium) */
+            --font-size-base: 1rem;
+            --font-size-lg: 1.125rem;
+        }
+ 
+        [data-font-size="small"] {
+            --font-size-base: 0.875rem; /* 14px */
+            --font-size-lg: 1rem; /* 16px */
+        }
+ 
+        [data-font-size="medium"] {
+            --font-size-base: 1rem; /* 16px */
+            --font-size-lg: 1.125rem; /* 18px */
+        }
+ 
+        [data-font-size="large"] {
+            --font-size-base: 1.125rem; /* 18px */
+            --font-size-lg: 1.25rem; /* 20px */
+        }
+ 
+        .story-text {
+            font-family: 'Georgia', 'Cambria', serif;
+            font-size: var(--font-size-lg, 1.125rem);
+            line-height: 1.7;
+        }
+ 
+        .regular-text {
+            font-size: var(--font-size-base, 1rem);
+            line-height: 1.6;
+        }
+ 
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Font Size Test</h1>
+    
+    <div>
+        <button onclick="setFontSize('small')">Small Font</button>
+        <button onclick="setFontSize('medium')">Medium Font</button>
+        <button onclick="setFontSize('large')">Large Font</button>
+    </div>
+ 
+    <div class="regular-text">
+        <p>This is regular text that should change size based on the font size setting.</p>
+        <p>Current font size: <span id="current-size">medium</span></p>
+    </div>
+ 
+    <div class="story-text">
+        <p>This is story text that should be larger than regular text and should also change size based on the font size setting.</p>
+        <p>The story text uses the --font-size-lg variable which should be larger than the base font size.</p>
+    </div>
+ 
+    <script>
+        function setFontSize(size) {
+            document.documentElement.setAttribute('data-font-size', size);
+            document.getElementById('current-size').textContent = size;
+            
+            // Update button styles to show which is active
+            document.querySelectorAll('button').forEach(btn => {
+                btn.style.fontWeight = 'normal';
+                btn.style.backgroundColor = '';
+            });
+            
+            event.target.style.fontWeight = 'bold';
+            event.target.style.backgroundColor = '#f0f0f0';
+        }
+ 
+        // Set default to medium
+        setFontSize('medium');
+    </script>
+</body>
+</html>

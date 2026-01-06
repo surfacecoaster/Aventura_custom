@@ -785,7 +785,234 @@ class ScenarioService {
     });
 
     const provider = this.getProvider(overrides?.profileId || undefined);
-    const { systemPrompt, userPrompt } = this.buildOpeningPrompts(wizardData, lorebookEntries, 'json', overrides?.systemPrompt);
+    const { mode, genre, customGenre, expandedSetting, protagonist, characters, writingStyle, title } = wizardData;
+    const genreLabel = genre === 'custom' && customGenre ? customGenre : genre;
+    const userName = protagonist?.name || 'the protagonist';
+
+    const tenseInstruction = writingStyle.tense === 'present'
+      ? 'Use present tense.'
+      : 'Use past tense.';
+
+    // Build system prompt - use override if provided, otherwise build contextual prompt
+    let systemPrompt: string;
+    if (overrides?.systemPrompt) {
+      // Replace placeholder tokens in custom prompt
+      systemPrompt = overrides.systemPrompt
+        .replace(/\{userName\}/g, userName)
+        .replace(/\{genreLabel\}/g, genreLabel)
+        .replace(/\{mode\}/g, mode)
+        .replace(/\{tense\}/g, tenseInstruction)
+        .replace(/\{tone\}/g, writingStyle.tone || 'immersive and engaging');
+    } else if (mode === 'creative-writing') {
+      // Creative writing mode: The user is the AUTHOR, not the protagonist
+      // The AI can and should write the protagonist's actions, thoughts, and dialogue
+      
+      // Generate POV instruction based on selected POV
+      let povInstruction = '';
+      switch (writingStyle.pov) {
+        case 'first':
+          povInstruction = `First person from ${userName}'s perspective ("I see...", "I feel...")`;
+          break;
+        case 'second':
+          povInstruction = `Second person addressing ${userName} as "you" ("You see...", "You feel...")`;
+          break;
+        case 'third':
+          povInstruction = `Third person limited (through ${userName}'s perspective)`;
+          break;
+      }
+      
+      systemPrompt = `You are crafting the opening scene of a ${genreLabel} story in collaboration with an author.
+
+<critical_understanding>
+The person reading this opening is the AUTHOR, not a character. They sit outside the story, directing what happens. The protagonist (${userName}) is a fictional character you write—not a stand-in for the author.
+</critical_understanding>
+
+<style>
+- POV: ${povInstruction}
+- ${tenseInstruction}
+- Tone: ${writingStyle.tone || 'immersive and engaging'}
+- 2-3 paragraphs of literary prose
+- Concrete sensory details grounded in character perception
+- Reach past the first cliché; invisible prose serves the story better than showy prose
+</style>
+
+<what_to_write>
+Write a compelling opening that:
+- Establishes the scene through ${userName}'s perspective and actions
+- Shows ${userName} engaged in the world—what they're doing, thinking, noticing
+- Introduces tension, stakes, or interesting elements
+- Includes other characters if appropriate, with their own actions and dialogue
+- Builds toward one crystallizing moment—the image or line the reader remembers
+- Ends at a natural narrative beat that invites the author to direct what happens next
+</what_to_write>
+
+<protagonist_as_character>
+${userName} is a character you control. Write their:
+- Actions and movements
+- Dialogue (if appropriate)
+- Thoughts and perceptions
+- Reactions to the environment and other characters
+
+${writingStyle.pov === 'second' ?
+  'Use second person ("you") to address the protagonist directly.' :
+  writingStyle.pov === 'first' ?
+  'Use first person ("I") from the protagonist\'s perspective.' :
+  'NEVER use second person ("you"). Always use "${userName}" or "he/she/they".'}
+</protagonist_as_character>
+
+<dialogue_craft>
+If dialogue appears:
+- Characters rarely answer directly—they deflect, interrupt, talk past each other
+- Compress rather than explain: don't spell out "A, therefore B, therefore C"
+- Interruptions cut mid-phrase, not after complete clauses
+- Status through brevity: authority figures state and act; they don't justify
+- Single-word responses can carry weight: "Evidence." "Always."
+- "Said" is invisible—use fancy tags sparingly
+- Mix clipped lines with fuller ones; vary rhythm naturally
+</dialogue_craft>
+
+<prohibited_patterns>
+Avoid cliché phrases: "like a physical blow," "ribs like a trapped bird," "heart hammering against ribs," "dust motes dancing," "silence stretched," "metallic tang," "voice dropping an octave," "for the first time in years"
+
+Banned words: ozone, orbs (for eyes), tresses, alabaster, porcelain
+
+Also avoid:
+- Purple prose, "not X but Y" constructs, telling emotions directly
+- Explanation chains: characters spelling out logical steps
+- Formal hedging: "Protocol dictates," "It would suggest"
+- Over-clipped dialogue: not every line should be a fragment
+- Melodrama: hearts shattering, waves of emotion
+- Narrative bows: tying scenes with conclusions or realizations
+</prohibited_patterns>
+
+Respond with valid JSON:
+{
+  "scene": "string - the opening (2-3 paragraphs of third-person narrative featuring ${userName})",
+  "title": "string - story title",
+  "initialLocation": {
+    "name": "string - location name",
+    "description": "string - 1-2 sentences"
+  }
+}`;
+    } else {
+      // Adventure mode: The user IS the protagonist
+      // The AI should NOT write the protagonist's actions—the player decides those
+      systemPrompt = `You are crafting the opening scene of an interactive ${genreLabel} adventure.
+
+<critical_constraints>
+# ABSOLUTE RULES - VIOLATION IS FAILURE
+1. **NEVER write what ${userName} does** - no actions, movements, or gestures
+2. **NEVER write what ${userName} says** - no dialogue or speech
+3. **NEVER write what ${userName} thinks or feels** - no internal states, emotions, or reactions
+4. **NEVER write what ${userName} perceives** - avoid "you see", "you notice", "you hear" constructions
+5. **Only describe the environment, NPCs, and situation** - let ${userName} decide how to engage
+</critical_constraints>
+
+<what_to_write>
+Write ONLY:
+- The physical environment (sights, sounds, smells, textures)
+- What NPCs are doing, saying, or how they're positioned
+- Objects, details, and atmosphere of the scene
+- Tension, stakes, or interesting elements present
+- Build toward one crystallizing moment—the image or detail that anchors the scene
+
+Do NOT write:
+- "${userName} walks into..." / "${userName} looks at..." / "${userName} feels..."
+- "You notice..." / "You see..." / "You sense..."
+- Any action, perception, or internal state belonging to ${userName}
+</what_to_write>
+
+<style>
+- ${tenseInstruction}
+- Tone: ${writingStyle.tone || 'immersive and engaging'}
+- 2-3 paragraphs of environmental and situational detail
+- Concrete sensory details, not abstractions
+- Reach past the first cliché; favor specific, grounded imagery
+</style>
+
+<npc_dialogue>
+If NPCs speak:
+- Dialogue is imperfect—false starts, evasions, non sequiturs; not prepared speeches
+- Compress rather than explain: don't spell out "A, therefore B, therefore C"
+- Interruptions cut mid-phrase, not after complete clauses
+- Status through brevity: authority figures state and act; they don't justify
+- Single-word responses can carry weight
+- "Said" is invisible—use fancy tags sparingly
+- Characters talk past each other—they advance their own concerns
+</npc_dialogue>
+
+<ending>
+End by presenting a situation that naturally invites ${userName} to act:
+- An NPC looking expectantly, mid-conversation
+- A door ajar, a sound from within
+- An object of interest within reach
+- A choice point or moment of tension
+
+NO questions. NO "What do you do?" Just the pregnant moment.
+</ending>
+
+<prohibited_patterns>
+Avoid cliché phrases: "like a physical blow," "dust motes dancing," "silence stretched," "metallic tang," "for the first time in years"
+
+Banned words: ozone, orbs (for eyes), tresses, alabaster, porcelain
+
+Also avoid:
+- Purple prose, "not X but Y" constructs
+- Explanation chains: NPCs spelling out logical steps
+- Formal hedging: "Protocol dictates," "It would suggest"
+- Over-clipped dialogue: not every line should be a fragment
+- Dialogue tag overload: "said" is invisible; use fancy tags sparingly
+</prohibited_patterns>
+
+Respond with valid JSON:
+{
+  "scene": "string - the opening (2-3 paragraphs describing environment/situation, NOT ${userName}'s actions)",
+  "title": "string - story title",
+  "initialLocation": {
+    "name": "string - location name",
+    "description": "string - 1-2 sentences"
+  }
+}`;
+    }
+
+    // Build lorebook context if entries are provided - include ALL entries with full descriptions
+    let lorebookContext = '';
+    if (lorebookEntries && lorebookEntries.length > 0) {
+      const entriesByType: Record<string, { name: string; description: string; hiddenInfo?: string }[]> = {};
+      for (const entry of lorebookEntries) {
+        if (!entriesByType[entry.type]) {
+          entriesByType[entry.type] = [];
+        }
+        entriesByType[entry.type].push({
+          name: entry.name,
+          description: entry.description,
+          hiddenInfo: entry.hiddenInfo,
+        });
+      }
+
+      lorebookContext = '\n\n## LOREBOOK (Established Canon)\nThe opening scene MUST be consistent with this established lore:\n';
+      for (const [type, entries] of Object.entries(entriesByType)) {
+        if (entries.length > 0) {
+          lorebookContext += `\n### ${type.charAt(0).toUpperCase() + type.slice(1)}s:\n`;
+          for (const entry of entries) {
+            lorebookContext += `- **${entry.name}**: ${entry.description}`;
+            if (entry.hiddenInfo) {
+              lorebookContext += ` [Hidden lore: ${entry.hiddenInfo}]`;
+            }
+            lorebookContext += '\n';
+          }
+        }
+      }
+    }
+
+    // Build opening guidance section if provided
+    const guidanceSection = wizardData.openingGuidance?.trim()
+      ? `\nAUTHOR'S GUIDANCE FOR OPENING:\n${wizardData.openingGuidance.trim()}\n`
+      : '';
+
+    const openingInstruction = mode === 'creative-writing'
+      ? ''
+      : `Describe the environment and situation. Do NOT write anything ${userName} does, says, thinks, or perceives. End with a moment that invites action.`;
 
     const messages: Message[] = [
       { role: 'system', content: systemPrompt },
@@ -844,7 +1071,180 @@ class ScenarioService {
     log('streamOpening called', { hasOverrides: !!overrides, profileId: overrides?.profileId });
 
     const provider = this.getProvider(overrides?.profileId || undefined);
-    const { systemPrompt, userPrompt } = this.buildOpeningPrompts(wizardData, undefined, 'stream', overrides?.systemPrompt);
+    const { mode, genre, customGenre, expandedSetting, protagonist, writingStyle } = wizardData;
+    const genreLabel = genre === 'custom' && customGenre ? customGenre : genre;
+    const userName = protagonist?.name || 'the protagonist';
+
+    const tenseInstruction = writingStyle.tense === 'present'
+      ? 'Use present tense.'
+      : 'Use past tense.';
+
+    // Build system prompt - use override if provided, otherwise build contextual prompt
+    let systemPrompt: string;
+    if (overrides?.systemPrompt) {
+      // Replace placeholder tokens in custom prompt
+      systemPrompt = overrides.systemPrompt
+        .replace(/\{userName\}/g, userName)
+        .replace(/\{genreLabel\}/g, genreLabel)
+        .replace(/\{mode\}/g, mode)
+        .replace(/\{tense\}/g, tenseInstruction)
+        .replace(/\{tone\}/g, writingStyle.tone || 'immersive and engaging');
+      // Add prose-only instruction for streaming
+      systemPrompt += '\n\nWrite ONLY prose. No JSON, no metadata.';
+    } else if (mode === 'creative-writing') {
+      // Creative writing mode: The user is the AUTHOR, not the protagonist
+      
+      // Generate POV instruction based on selected POV
+      let povInstruction = '';
+      switch (writingStyle.pov) {
+        case 'first':
+          povInstruction = `First person from ${userName}'s perspective ("I see...", "I feel...")`;
+          break;
+        case 'second':
+          povInstruction = `Second person addressing ${userName} as "you" ("You see...", "You feel...")`;
+          break;
+        case 'third':
+          povInstruction = `Third person limited (through ${userName}'s perspective)`;
+          break;
+      }
+      
+      systemPrompt = `You are crafting the opening scene of a ${genreLabel} story in collaboration with an author.
+
+<critical_understanding>
+The person reading this opening is the AUTHOR, not a character. They sit outside the story, directing what happens. The protagonist (${userName}) is a fictional character you write—not a stand-in for the author.
+</critical_understanding>
+
+<style>
+- POV: ${povInstruction}
+- ${tenseInstruction}
+- Tone: ${writingStyle.tone || 'immersive and engaging'}
+- 2-3 paragraphs of literary prose
+- Reach past the first cliché; invisible prose serves the story better than showy prose
+</style>
+
+<what_to_write>
+Write a compelling opening that:
+- Establishes the scene through ${userName}'s perspective and actions
+- Shows ${userName} engaged in the world—what they're doing, thinking, noticing
+- Introduces tension, stakes, or interesting elements
+- Builds toward one crystallizing moment—the image or line the reader remembers
+- Ends at a natural narrative beat that invites the author to direct what happens next
+
+${userName} is a character you control. Write their actions, dialogue, thoughts, and perceptions.
+${writingStyle.pov === 'second' ?
+  'Use second person ("you") to address the protagonist directly.' :
+  writingStyle.pov === 'first' ?
+  'Use first person ("I") from the protagonist\'s perspective.' :
+  'NEVER use second person ("you"). Always use "${userName}" or "he/she/they".'}
+</what_to_write>
+
+<dialogue_craft>
+If dialogue appears:
+- Characters rarely answer directly—they deflect, interrupt, talk past each other
+- Compress rather than explain: don't spell out "A, therefore B, therefore C"
+- Interruptions cut mid-phrase, not after complete clauses
+- Status through brevity: authority figures state and act; they don't justify
+- "Said" is invisible—use fancy tags sparingly
+- Mix clipped lines with fuller ones; vary rhythm naturally
+</dialogue_craft>
+
+<prohibited_patterns>
+Avoid cliché phrases: "like a physical blow," "ribs like a trapped bird," "heart hammering against ribs," "dust motes dancing," "silence stretched," "metallic tang," "voice dropping an octave," "for the first time in years"
+
+Banned words: ozone, orbs (for eyes), tresses, alabaster, porcelain
+
+Also avoid:
+- Purple prose, "not X but Y" constructs, telling emotions directly
+- Explanation chains: characters spelling out logical steps
+- Formal hedging: "Protocol dictates," "It would suggest"
+- Over-clipped dialogue: not every line should be a fragment
+- Melodrama: hearts shattering, waves of emotion
+</prohibited_patterns>
+
+Write ONLY prose. No JSON, no metadata.`;
+    } else {
+      // Adventure mode: The user IS the protagonist
+      systemPrompt = `You are crafting the opening scene of an interactive ${genreLabel} adventure.
+
+<critical_constraints>
+# ABSOLUTE RULES - VIOLATION IS FAILURE
+1. **NEVER write what ${userName} does** - no actions, movements, or gestures
+2. **NEVER write what ${userName} says** - no dialogue or speech
+3. **NEVER write what ${userName} thinks or feels** - no internal states, emotions, or reactions
+4. **NEVER write what ${userName} perceives** - avoid "you see", "you notice", "you hear"
+5. **Only describe the environment, NPCs, and situation**
+</critical_constraints>
+
+<what_to_write>
+Write ONLY:
+- The physical environment (sights, sounds, smells, textures)
+- What NPCs are doing, saying, or how they're positioned
+- Objects, details, and atmosphere of the scene
+- Build toward one crystallizing moment—the image or detail that anchors the scene
+
+Do NOT write:
+- "${userName} walks..." / "${userName} looks..." / "${userName} feels..."
+- "You notice..." / "You see..." / "You sense..."
+- Any action or perception belonging to ${userName}
+</what_to_write>
+
+<style>
+- ${tenseInstruction}
+- Tone: ${writingStyle.tone || 'immersive and engaging'}
+- 2-3 paragraphs of environmental and situational detail
+- Reach past the first cliché; favor specific, grounded imagery
+</style>
+
+<npc_dialogue>
+If NPCs speak:
+- Dialogue is imperfect—false starts, evasions, non sequiturs; not prepared speeches
+- Compress rather than explain: don't spell out "A, therefore B, therefore C"
+- Interruptions cut mid-phrase, not after complete clauses
+- Status through brevity: authority figures state and act; they don't justify
+- "Said" is invisible—use fancy tags sparingly
+- Characters talk past each other—they advance their own concerns
+</npc_dialogue>
+
+<ending>
+End with a situation inviting action: an NPC waiting, a door ajar, an object within reach.
+NO questions. Just the pregnant moment.
+</ending>
+
+<prohibited_patterns>
+Avoid cliché phrases: "like a physical blow," "dust motes dancing," "silence stretched," "metallic tang," "for the first time in years"
+
+Banned words: ozone, orbs (for eyes), tresses, alabaster, porcelain
+
+Also avoid:
+- Purple prose, "not X but Y" constructs
+- Explanation chains: NPCs spelling out logical steps
+- Formal hedging: "Protocol dictates," "It would suggest"
+- Over-clipped dialogue: not every line should be a fragment
+</prohibited_patterns>
+
+Write ONLY prose. No JSON, no metadata.`;
+    }
+
+    // Build user message based on mode
+    const userMessage = mode === 'creative-writing'
+      ? `Write the opening scene:
+
+SETTING: ${expandedSetting?.name || 'Unknown World'}
+${expandedSetting?.description || wizardData.settingSeed}
+
+PROTAGONIST: ${userName}
+
+Write the opening featuring ${userName} as the main character.
+${writingStyle.pov === 'first' ? 'Use first person ("I").' :
+  writingStyle.pov === 'second' ? 'Use second person ("you").' : 'Use third person.'}`
+      : `Write the opening scene:
+
+SETTING: ${expandedSetting?.name || 'Unknown World'}
+${expandedSetting?.description || wizardData.settingSeed}
+
+PROTAGONIST: ${userName}
+
+Describe the environment and situation only. Do NOT write anything ${userName} does, says, thinks, or perceives.`;
 
     const messages: Message[] = [
       { role: 'system', content: systemPrompt },

@@ -1793,6 +1793,13 @@ class SettingsStore {
     }
   }
 
+  /**
+   * Apply font size to the DOM using data-font-size attribute
+   */
+  private applyFontSize(size: 'small' | 'medium' | 'large') {
+    document.documentElement.setAttribute('data-font-size', size);
+  }
+
   async setTheme(theme: ThemeId) {
     this.uiSettings.theme = theme;
     await database.setSetting('theme', theme);
