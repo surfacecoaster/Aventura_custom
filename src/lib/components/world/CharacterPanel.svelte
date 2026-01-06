@@ -180,9 +180,9 @@
       {#each story.characters as character (character.id)}
         {@const StatusIcon = getStatusIcon(character.status)}
         {@const isProtagonist = character.relationship === 'self'}
-        <div class="card p-3">
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div class="flex min-w-0 items-start gap-2">
+        <div class="card p-2">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
               <div class="rounded-full bg-surface-700 p-1.5 {getStatusColor(character.status)}">
                 <StatusIcon class="h-4 w-4" />
               </div>
@@ -256,6 +256,14 @@
               {/if}
             </div>
           </div>
+          {#if character.traits.length > 0}
+            <p class="mt-1 break-words text-xs text-surface-500">
+              Traits: {character.traits.join(', ')}
+            </p>
+          {/if}
+          {#if character.description}
+            <p class="mt-1 break-words text-sm text-surface-400">{character.description}</p>
+          {/if}
 
           {#if pendingProtagonistId === character.id}
             <div class="mt-3 space-y-2 rounded-md border border-surface-700/60 bg-surface-800/40 p-2">

@@ -95,7 +95,7 @@
 
   <!-- Current Location -->
   {#if story.currentLocation}
-    <div class="card border-accent-500/50 bg-accent-500/10 p-3">
+    <div class="card border-accent-500/50 bg-accent-500/10 p-2">
       <div class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-2 text-accent-400">
           <Navigation class="h-4 w-4" />
@@ -151,31 +151,26 @@
   {:else}
     <div class="space-y-2">
       {#each story.locations.filter(l => !l.current) as location (location.id)}
-        <div class="card p-3">
-          <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-            <div class="flex min-w-0 items-start gap-2">
+        <div class="card p-2">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
               <div class="rounded-full bg-surface-700 p-1.5">
                 <MapPin class="h-4 w-4 text-surface-400" />
               </div>
-              <div class="min-w-0">
-                <span class="break-words font-medium text-surface-100">{location.name}</span>
-                <button
-                  class="ml-2 text-xs transition-colors {location.visited ? 'text-surface-500 hover:text-surface-300' : 'text-surface-600 hover:text-surface-400'}"
-                  onclick={() => toggleVisited(location.id)}
-                  title={location.visited ? 'Click to mark as unvisited' : 'Click to mark as visited'}
-                >
-                  {#if location.visited}
-                    <Eye class="inline h-3 w-3" /> visited
-                  {:else}
-                    <EyeOff class="inline h-3 w-3" /> unvisited
-                  {/if}
-                </button>
-                {#if location.description}
-                  <p class="mt-1 break-words text-sm text-surface-400">{location.description}</p>
+              <span class="break-words font-medium text-surface-100">{location.name}</span>
+              <button
+                class="ml-2 text-xs transition-colors {location.visited ? 'text-surface-500 hover:text-surface-300' : 'text-surface-600 hover:text-surface-400'}"
+                onclick={() => toggleVisited(location.id)}
+                title={location.visited ? 'Click to mark as unvisited' : 'Click to mark as visited'}
+              >
+                {#if location.visited}
+                  <Eye class="inline h-3 w-3" /> visited
+                {:else}
+                  <EyeOff class="inline h-3 w-3" /> unvisited
                 {/if}
-              </div>
+              </button>
             </div>
-            <div class="flex items-center gap-1 self-end sm:self-auto">
+            <div class="flex items-center gap-1">
               {#if confirmingDeleteId === location.id}
                 <button
                   class="btn-ghost rounded px-2 py-1 text-xs text-red-400 hover:bg-red-500/20"

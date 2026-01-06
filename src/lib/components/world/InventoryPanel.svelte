@@ -155,16 +155,16 @@
     <div class="space-y-2">
       <h4 class="text-sm font-medium text-surface-400">Equipped</h4>
       {#each story.equippedItems as item (item.id)}
-        <div class="card border-accent-500/30 bg-accent-500/5 p-3">
-          <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-            <div class="flex min-w-0 items-center gap-2">
+        <div class="card border-accent-500/30 bg-accent-500/5 p-2">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
               <Shield class="h-4 w-4 text-accent-400" />
               <span class="break-words font-medium text-surface-100">{item.name}</span>
               {#if item.quantity > 1}
                 <span class="text-sm text-surface-400">x{item.quantity}</span>
               {/if}
             </div>
-            <div class="flex items-center gap-1 self-end sm:self-auto">
+            <div class="flex items-center gap-1">
               <button
                 class="btn-ghost rounded p-1.5 text-surface-500 hover:text-surface-200 sm:p-1"
                 onclick={() => startEdit(item)}
@@ -288,25 +288,18 @@
         <h4 class="text-sm font-medium text-surface-400">Inventory</h4>
       {/if}
       {#each story.inventoryItems.filter(item => !item.equipped) as item (item.id)}
-        <div class="card p-3">
-          <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-            <div class="flex min-w-0 items-start gap-2">
+        <div class="card p-2">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
               <div class="rounded-full bg-surface-700 p-1.5">
                 <Package class="h-4 w-4 text-surface-400" />
               </div>
-              <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-2">
-                  <span class="break-words font-medium text-surface-100">{item.name}</span>
-                  {#if item.quantity > 1}
-                    <span class="text-sm text-surface-400">x{item.quantity}</span>
-                  {/if}
-                </div>
-                {#if item.description}
-                  <p class="mt-1 break-words text-sm text-surface-400">{item.description}</p>
-                {/if}
-              </div>
+              <span class="break-words font-medium text-surface-100">{item.name}</span>
+              {#if item.quantity > 1}
+                <span class="text-sm text-surface-400">x{item.quantity}</span>
+              {/if}
             </div>
-            <div class="flex items-center gap-1 self-end sm:self-auto">
+            <div class="flex items-center gap-1">
               <button
                 class="btn-ghost rounded p-1.5 text-surface-500 hover:text-surface-200 sm:p-1"
                 onclick={() => startEdit(item)}
@@ -330,6 +323,9 @@
               </button>
             </div>
           </div>
+          {#if item.description}
+            <p class="mt-1 break-words text-sm text-surface-400">{item.description}</p>
+          {/if}
           {#if editingId === item.id}
             <div class="mt-3 space-y-2">
               <input
@@ -421,26 +417,19 @@
     <div class="space-y-2">
       <h4 class="text-sm font-medium text-surface-400">World Items</h4>
       {#each worldItems as item (item.id)}
-        <div class="card p-3">
-          <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-            <div class="flex min-w-0 items-start gap-2">
+        <div class="card p-2">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
               <div class="rounded-full bg-surface-700 p-1.5">
                 <Package class="h-4 w-4 text-surface-400" />
               </div>
-              <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-2">
-                  <span class="break-words font-medium text-surface-100">{item.name}</span>
-                  {#if item.quantity > 1}
-                    <span class="text-sm text-surface-400">x{item.quantity}</span>
-                  {/if}
-                </div>
-                <p class="mt-1 break-words text-xs text-surface-500">At {getLocationLabel(item.location)}</p>
-                {#if item.description}
-                  <p class="mt-1 break-words text-sm text-surface-400">{item.description}</p>
-                {/if}
-              </div>
+              <span class="break-words font-medium text-surface-100">{item.name}</span>
+              {#if item.quantity > 1}
+                <span class="text-sm text-surface-400">x{item.quantity}</span>
+              {/if}
+              <span class="text-xs text-surface-500">At {getLocationLabel(item.location)}</span>
             </div>
-            <div class="flex items-center gap-1 self-end sm:self-auto">
+            <div class="flex items-center gap-1">
               <button
                 class="btn-ghost rounded p-1.5 text-surface-500 hover:text-surface-200 sm:p-1"
                 onclick={() => startEdit(item)}
@@ -471,6 +460,9 @@
               </button>
             </div>
           </div>
+          {#if item.description}
+            <p class="mt-1 break-words text-sm text-surface-400">{item.description}</p>
+          {/if}
           {#if editingId === item.id}
             <div class="mt-3 space-y-2">
               <input
