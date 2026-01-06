@@ -137,6 +137,8 @@
   const povOptions = $derived.by((): { id: POV; label: string; example: string }[] => {
     if (selectedMode === 'creative-writing') {
       return [
+        { id: 'first', label: '1st Person', example: 'I walk into the room...' },
+        { id: 'second', label: '2nd Person', example: 'You walk into the room...' },
         { id: 'third', label: '3rd Person', example: 'They walk into the room...' },
       ];
     }
@@ -163,12 +165,13 @@
   ];
 
   // Update default POV and tense when mode changes
-  // Creative writing: third person, past tense (literary standard)
+  // Creative writing: past tense (literary standard), let user choose POV
   // Adventure: first person, present tense (immersive)
   $effect(() => {
     if (selectedMode === 'creative-writing') {
-      selectedPOV = 'third';
+      // Keep past tense as default for Creative Writing (literary standard)
       selectedTense = 'past';
+      // Don't override POV - let user choose
     } else {
       selectedPOV = 'first';
       selectedTense = 'present';
@@ -1426,7 +1429,7 @@
           <!-- POV Selection -->
           <div>
             <label class="mb-2 block text-sm font-medium text-surface-300">Point of View</label>
-            <div class="grid gap-2 {selectedMode === 'creative-writing' ? 'grid-cols-1' : 'grid-cols-2'}">
+            <div class="grid gap-2 {selectedMode === 'creative-writing' ? 'grid-cols-3' : 'grid-cols-2'}">
               {#each povOptions as option}
                 <button
                   class="card p-3 text-center transition-all"

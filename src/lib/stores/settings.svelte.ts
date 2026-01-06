@@ -1039,7 +1039,10 @@ class SettingsStore {
         // Apply theme immediately to prevent FOUC
         this.applyTheme(theme as ThemeId);
       }
-      if (fontSize) this.uiSettings.fontSize = fontSize as 'small' | 'medium' | 'large';
+      if (fontSize) {
+        this.uiSettings.fontSize = fontSize as 'small' | 'medium' | 'large';
+        this.applyFontSize(this.uiSettings.fontSize);
+      }
       if (showWordCount) this.uiSettings.showWordCount = showWordCount === 'true';
       if (autoSave) this.uiSettings.autoSave = autoSave === 'true';
       if (spellcheckEnabled !== null) this.uiSettings.spellcheckEnabled = spellcheckEnabled === 'true';
@@ -1608,6 +1611,13 @@ class SettingsStore {
     }
   }
 
+  /**
+   * Apply font size to the DOM using data-font-size attribute
+   */
+  private applyFontSize(size: 'small' | 'medium' | 'large') {
+    document.documentElement.setAttribute('data-font-size', size);
+  }
+
   async setTheme(theme: ThemeId) {
     this.uiSettings.theme = theme;
     await database.setSetting('theme', theme);
@@ -1617,6 +1627,7 @@ class SettingsStore {
   async setFontSize(size: 'small' | 'medium' | 'large') {
     this.uiSettings.fontSize = size;
     await database.setSetting('font_size', size);
+    this.applyFontSize(size);
   }
 
   async setSpellcheckEnabled(enabled: boolean) {

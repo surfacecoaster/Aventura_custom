@@ -792,6 +792,21 @@ Generate ${count} interesting supporting characters who would create compelling 
     } else if (mode === 'creative-writing') {
       // Creative writing mode: The user is the AUTHOR, not the protagonist
       // The AI can and should write the protagonist's actions, thoughts, and dialogue
+      
+      // Generate POV instruction based on selected POV
+      let povInstruction = '';
+      switch (writingStyle.pov) {
+        case 'first':
+          povInstruction = `First person from ${userName}'s perspective ("I see...", "I feel...")`;
+          break;
+        case 'second':
+          povInstruction = `Second person addressing ${userName} as "you" ("You see...", "You feel...")`;
+          break;
+        case 'third':
+          povInstruction = `Third person limited (through ${userName}'s perspective)`;
+          break;
+      }
+      
       systemPrompt = `You are crafting the opening scene of a ${genreLabel} story in collaboration with an author.
 
 <critical_understanding>
@@ -799,7 +814,7 @@ The person reading this opening is the AUTHOR, not a character. They sit outside
 </critical_understanding>
 
 <style>
-- POV: Third person limited (through ${userName}'s perspective)
+- POV: ${povInstruction}
 - ${tenseInstruction}
 - Tone: ${writingStyle.tone || 'immersive and engaging'}
 - 2-3 paragraphs of literary prose
@@ -824,7 +839,11 @@ ${userName} is a character you control. Write their:
 - Thoughts and perceptions
 - Reactions to the environment and other characters
 
-NEVER use second person ("you"). Always use "${userName}" or "he/she/they".
+${writingStyle.pov === 'second' ?
+  'Use second person ("you") to address the protagonist directly.' :
+  writingStyle.pov === 'first' ?
+  'Use first person ("I") from the protagonist\'s perspective.' :
+  'NEVER use second person ("you"). Always use "${userName}" or "he/she/they".'}
 </protagonist_as_character>
 
 <dialogue_craft>
@@ -1080,6 +1099,21 @@ ${characters.map(c => `- ${c.name} (${c.role}): ${c.description}`).join('\n')}
       systemPrompt += '\n\nWrite ONLY prose. No JSON, no metadata.';
     } else if (mode === 'creative-writing') {
       // Creative writing mode: The user is the AUTHOR, not the protagonist
+      
+      // Generate POV instruction based on selected POV
+      let povInstruction = '';
+      switch (writingStyle.pov) {
+        case 'first':
+          povInstruction = `First person from ${userName}'s perspective ("I see...", "I feel...")`;
+          break;
+        case 'second':
+          povInstruction = `Second person addressing ${userName} as "you" ("You see...", "You feel...")`;
+          break;
+        case 'third':
+          povInstruction = `Third person limited (through ${userName}'s perspective)`;
+          break;
+      }
+      
       systemPrompt = `You are crafting the opening scene of a ${genreLabel} story in collaboration with an author.
 
 <critical_understanding>
@@ -1087,7 +1121,7 @@ The person reading this opening is the AUTHOR, not a character. They sit outside
 </critical_understanding>
 
 <style>
-- POV: Third person limited (through ${userName}'s perspective)
+- POV: ${povInstruction}
 - ${tenseInstruction}
 - Tone: ${writingStyle.tone || 'immersive and engaging'}
 - 2-3 paragraphs of literary prose
@@ -1103,7 +1137,11 @@ Write a compelling opening that:
 - Ends at a natural narrative beat that invites the author to direct what happens next
 
 ${userName} is a character you control. Write their actions, dialogue, thoughts, and perceptions.
-NEVER use second person ("you"). Always use "${userName}" or "he/she/they".
+${writingStyle.pov === 'second' ?
+  'Use second person ("you") to address the protagonist directly.' :
+  writingStyle.pov === 'first' ?
+  'Use first person ("I") from the protagonist\'s perspective.' :
+  'NEVER use second person ("you"). Always use "${userName}" or "he/she/they".'}
 </what_to_write>
 
 <dialogue_craft>
@@ -1202,7 +1240,9 @@ ${expandedSetting?.description || wizardData.settingSeed}
 
 PROTAGONIST: ${userName}
 
-Write the opening featuring ${userName} as the main character. Use third person.`
+Write the opening featuring ${userName} as the main character.
+${writingStyle.pov === 'first' ? 'Use first person ("I").' :
+  writingStyle.pov === 'second' ? 'Use second person ("you").' : 'Use third person.'}`
       : `Write the opening scene:
 
 SETTING: ${expandedSetting?.name || 'Unknown World'}
