@@ -11,6 +11,7 @@
   import SettingsModal from '$lib/components/settings/SettingsModal.svelte';
   import LorebookDebugPanel from '$lib/components/debug/LorebookDebugPanel.svelte';
   import DebugLogModal from '$lib/components/debug/DebugLogModal.svelte';
+  import NovelInstructionCard from '$lib/components/story/NovelInstructionCard.svelte';
   import { swipe } from '$lib/utils/swipe';
   import { Bug } from 'lucide-svelte';
   import type { Snippet } from 'svelte';
@@ -29,11 +30,33 @@
       ui.toggleSidebar();
     }
   }
+
+  // Keyboard shortcut handler for Novel Mode
+  function handleKeyDown(event: KeyboardEvent) {
+    // Check if we're in Novel Mode and the '/' key is pressed
+    if (event.key === '/' && story.currentStory?.mode === 'novel') {
+      // Prevent default behavior (like focusing search)
+      event.preventDefault();
+      
+      // Show instruction card at cursor position
+      ui.showNovelInstructionCard({
+        x: event.clientX,
+        y: event.clientY
+      });
+    }
+    
+    // Close instruction card with Escape key
+    if (event.key === 'Escape' && ui.novelInstructionCardVisible) {
+      ui.hideNovelInstructionCard();
+    }
+  }
 </script>
 
 <div
   class="app-shell flex h-screen w-screen bg-surface-900"
   use:swipe={{ onSwipeRight: handleSwipeRight, onSwipeLeft: handleSwipeLeft, threshold: 50 }}
+  onkeydown={handleKeyDown}
+  tabindex="0"
 >
   <!-- Mobile sidebar overlay (tap to close) -->
   {#if ui.sidebarOpen && story.currentStory}
@@ -88,6 +111,9 @@
 
   <!-- Debug Log Modal -->
   <DebugLogModal />
+
+  <!-- Novel Mode Instruction Card -->
+  <NovelInstructionCard />
 
   <!-- Floating Debug Button (when debug mode enabled) -->
   {#if settings.uiSettings.debugMode}

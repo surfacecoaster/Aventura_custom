@@ -108,7 +108,7 @@ export interface ClassificationContext {
   existingItems: Item[];
   existingStoryBeats: StoryBeat[];
   genre: string | null;
-  storyMode: 'adventure' | 'creative-writing';
+  storyMode: 'adventure' | 'creative-writing' | 'novel';
 }
 
 export class ClassifierService {

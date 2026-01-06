@@ -1,6 +1,6 @@
 // Core entity types for Aventura
 
-export type StoryMode = 'adventure' | 'creative-writing';
+export type StoryMode = 'adventure' | 'creative-writing' | 'novel';
 export type POV = 'first' | 'second' | 'third';
 export type Tense = 'past' | 'present';
 

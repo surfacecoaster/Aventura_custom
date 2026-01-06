@@ -135,7 +135,7 @@
 
   // POV options
   const povOptions = $derived.by((): { id: POV; label: string; example: string }[] => {
-    if (selectedMode === 'creative-writing') {
+    if (selectedMode === 'creative-writing' || selectedMode === 'novel') {
       return [
         { id: 'first', label: '1st Person', example: 'I walk into the room...' },
         { id: 'second', label: '2nd Person', example: 'You walk into the room...' },
@@ -165,11 +165,11 @@
   ];
 
   // Update default POV and tense when mode changes
-  // Creative writing: past tense (literary standard), let user choose POV
+  // Creative writing & Novel: past tense (literary standard), let user choose POV
   // Adventure: first person, present tense (immersive)
   $effect(() => {
-    if (selectedMode === 'creative-writing') {
-      // Keep past tense as default for Creative Writing (literary standard)
+    if (selectedMode === 'creative-writing' || selectedMode === 'novel') {
+      // Keep past tense as default for Creative Writing and Novel (literary standard)
       selectedTense = 'past';
       // Don't override POV - let user choose
     } else {
@@ -506,7 +506,7 @@
         tone,
       },
       title: storyTitle,
-      openingGuidance: selectedMode === 'creative-writing' && openingGuidance.trim() ? openingGuidance.trim() : undefined,
+      openingGuidance: (selectedMode === 'creative-writing' || selectedMode === 'novel') && openingGuidance.trim() ? openingGuidance.trim() : undefined,
     };
 
     // Prepare lorebook entries for opening generation context
@@ -557,7 +557,7 @@
         tone,
       },
       title: storyTitle,
-      openingGuidance: selectedMode === 'creative-writing' && openingGuidance.trim() ? openingGuidance.trim() : undefined,
+      openingGuidance: (selectedMode === 'creative-writing' || selectedMode === 'novel') && openingGuidance.trim() ? openingGuidance.trim() : undefined,
     };
 
     // Prepare story data
@@ -740,7 +740,7 @@
         <!-- Step 1: Mode Selection -->
         <div class="space-y-4">
           <p class="text-surface-400">How do you want to experience your story?</p>
-          <div class="grid gap-4 sm:grid-cols-2">
+          <div class="grid gap-4 sm:grid-cols-3">
             <button
               class="card p-6 text-left transition-all hover:border-primary-500/50"
               class:ring-2={selectedMode === 'adventure'}
@@ -773,6 +773,23 @@
               <p class="text-sm text-surface-400">
                 <strong>You are the author.</strong> Direct the story and craft the narrative.
                 The AI collaborates with you to write prose following your creative vision.
+              </p>
+            </button>
+            <button
+              class="card p-6 text-left transition-all hover:border-accent-500/50"
+              class:ring-2={selectedMode === 'novel'}
+              class:ring-accent-500={selectedMode === 'novel'}
+              onclick={() => selectedMode = 'novel'}
+            >
+              <div class="flex items-center gap-4 mb-3">
+                <div class="rounded-lg bg-surface-700/50 p-3">
+                  <Book class="h-6 w-6 text-accent-400" />
+                </div>
+                <span class="text-lg font-semibold text-surface-100">Novel Mode</span>
+              </div>
+              <p class="text-sm text-surface-400">
+                <strong>Collaborative writing canvas.</strong> Write together with the AI on a single
+                continuous canvas. Use instructions to guide the AI's contributions.
               </p>
             </button>
           </div>
@@ -1246,8 +1263,8 @@
               </p>
             {/if}
 
-            <!-- Supporting Characters (Creative Mode Only) -->
-            {#if selectedMode === 'creative-writing'}
+            <!-- Supporting Characters (Creative Mode & Novel Mode) -->
+            {#if selectedMode === 'creative-writing' || selectedMode === 'novel'}
               <div class="space-y-3 pt-4 border-t border-surface-700">
                 <div class="flex items-center justify-between">
                   <h3 class="font-medium text-surface-100">Supporting Cast</h3>
@@ -1506,8 +1523,8 @@
             />
           </div>
 
-          <!-- Opening Scene Guidance (Creative Writing Mode Only) -->
-          {#if selectedMode === 'creative-writing'}
+          <!-- Opening Scene Guidance (Creative Writing Mode & Novel Mode) -->
+          {#if selectedMode === 'creative-writing' || selectedMode === 'novel'}
             <div class="card bg-surface-900 p-4 space-y-3">
               <div class="flex items-center gap-2">
                 <Feather class="h-4 w-4 text-secondary-400" />
@@ -1570,7 +1587,7 @@
           <div class="card bg-surface-800 p-4 space-y-2 text-sm">
             <h4 class="font-medium text-surface-200">Story Summary</h4>
             <div class="grid grid-cols-2 gap-2 text-surface-400">
-              <div><strong>Mode:</strong> {selectedMode === 'adventure' ? 'Adventure' : 'Creative Writing'}</div>
+              <div><strong>Mode:</strong> {selectedMode === 'adventure' ? 'Adventure' : selectedMode === 'novel' ? 'Novel' : 'Creative Writing'}</div>
               <div><strong>Genre:</strong> {selectedGenre === 'custom' ? customGenre : selectedGenre}</div>
               <div><strong>POV:</strong> {povOptions.find(p => p.id === selectedPOV)?.label}</div>
               <div><strong>Tense:</strong> {tenseOptions.find(t => t.id === selectedTense)?.label}</div>

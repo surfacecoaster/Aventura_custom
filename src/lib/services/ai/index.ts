@@ -329,7 +329,7 @@ class AIService {
       existingStoryBeats: worldState.storyBeats,
       genre: story?.genre ?? null,
       storyMode: story?.mode ?? 'adventure',
-    };
+    } as const;
 
     const result = await classifier.classify(context);
     log('classifyResponse complete', {
@@ -790,6 +790,116 @@ class AIService {
   }
 
   /**
+   * Generate story continuation for Novel Mode based on user instructions.
+   * This is the core AI generation method for Novel Mode.
+   */
+  async generateStoryContinuation(
+    storyId: string,
+    instruction: string,
+    options: {
+      mode: 'novel';
+      instruction: string;
+      contextEntries: StoryEntry[];
+      worldState?: WorldState;
+    }
+  ): Promise<{ content: string; metadata: any }> {
+    log('generateStoryContinuation called for Novel Mode', {
+      storyId,
+      instructionLength: instruction.length,
+      contextEntriesCount: options.contextEntries.length,
+    });
+
+    const provider = this.getProvider();
+    const worldState = options.worldState || {
+      characters: [],
+      locations: [],
+      items: [],
+      storyBeats: [],
+    };
+
+    // Build system prompt for Novel Mode (similar to creative writing but with instruction focus)
+    const systemPrompt = this.buildSystemPrompt(
+      worldState,
+      undefined,
+      undefined,
+      'creative-writing',
+      undefined,
+      undefined,
+      'third',
+      'past'
+    );
+
+    // Add Novel Mode specific instructions
+    const novelModePrompt = `
+
+<novel_mode_instruction>
+You are collaborating with a human author to write a novel.
+
+RULES:
+1. The human provides INSTRUCTIONS about what to write next
+2. You write prose that follows those instructions exactly
+3. Write in THIRD PERSON, PAST TENSE (literary standard)
+4. Continue seamlessly from the existing story context
+5. Write 1-3 paragraphs (100-300 words) per continuation
+6. End at a natural narrative beat, ready for the next instruction
+
+FORMAT:
+- Continue the story exactly where it left off
+- Follow the author's instruction precisely
+- Write vivid, engaging prose
+- Maintain consistent characterization and tone
+- Do not add author notes or commentary
+</novel_mode_instruction>`;
+
+    const fullSystemPrompt = systemPrompt + novelModePrompt;
+
+    // Build conversation history with context and instruction
+    const messages: Message[] = [
+      { role: 'system', content: fullSystemPrompt },
+    ];
+
+    // Add context from previous entries
+    if (options.contextEntries.length > 0) {
+      const contextMessage = `STORY CONTEXT:\n${options.contextEntries
+        .map(entry => entry.content)
+        .join('\n\n')}`;
+      messages.push({ role: 'user', content: contextMessage });
+    }
+
+    // Add the instruction as the final user message
+    messages.push({ role: 'user', content: `INSTRUCTION: ${instruction}` });
+
+    log('Novel Mode messages prepared', {
+      totalMessages: messages.length,
+      systemPromptLength: fullSystemPrompt.length,
+      instructionLength: instruction.length,
+    });
+
+    // Generate the response
+    const response = await provider.generateResponse({
+      messages,
+      model: settings.apiSettings.defaultModel,
+      temperature: settings.apiSettings.temperature,
+      maxTokens: Math.min(settings.apiSettings.maxTokens, 500), // Limit to ~300 words
+    });
+
+    log('Story continuation generated', {
+      contentLength: response.content.length,
+      storyId,
+    });
+
+    return {
+      content: response.content,
+      metadata: {
+        instructionUsed: instruction,
+        generationMode: 'novel',
+        model: settings.apiSettings.defaultModel,
+        timestamp: Date.now(),
+      },
+    };
+  }
+
+  /**
    * Build a block containing chapter summaries for injection into the system prompt.
    * Per design doc: summarized entries are excluded from direct context,
    * but their summaries provide narrative continuity.
@@ -836,7 +946,7 @@ class AIService {
    * This helps models that expect user-first conversation format.
    */
   private buildPrimingMessage(
-    mode: 'adventure' | 'creative-writing',
+    mode: 'adventure' | 'creative-writing' | 'novel',
     pov?: 'first' | 'second' | 'third',
     tense: 'past' | 'present' = 'present'
   ): string {
@@ -892,7 +1002,7 @@ I am the player. You narrate the world around me. Begin when I take my first act
     worldState: WorldState,
     templateId?: string | null,
     retrievedContext?: string,
-    mode: 'adventure' | 'creative-writing' = 'adventure',
+    mode: 'adventure' | 'creative-writing' | 'novel' = 'adventure',
     tieredContextBlock?: string,
     systemPromptOverride?: string,
     pov?: 'first' | 'second' | 'third',

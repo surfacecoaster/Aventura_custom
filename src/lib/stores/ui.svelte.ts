@@ -133,6 +133,11 @@ class UIStore {
   loreManagementProgress = $state('');
   loreManagementChanges = $state<number>(0);
 
+  // Novel Mode instruction card state
+  novelInstructionCardVisible = $state(false);
+  novelInstructionCardPosition = $state({ x: 0, y: 0 });
+  novelInstructionDraft = $state('');
+
   // Debug mode state - session-only request/response logging
   debugLogs = $state<DebugLogEntry[]>([]);
   debugModalOpen = $state(false);
@@ -638,6 +643,31 @@ class UIStore {
     this.lorebookBulkSelection = new Set();
     this.lorebookSearchQuery = '';
     this.lorebookShowDetail = false;
+  }
+
+  // Novel Mode instruction card methods
+  showNovelInstructionCard(position?: { x: number; y: number }) {
+    this.novelInstructionCardVisible = true;
+    if (position) {
+      this.novelInstructionCardPosition = position;
+    }
+  }
+
+  hideNovelInstructionCard() {
+    this.novelInstructionCardVisible = false;
+    this.novelInstructionDraft = '';
+  }
+
+  setNovelInstructionDraft(draft: string) {
+    this.novelInstructionDraft = draft;
+  }
+
+  toggleNovelInstructionCard(position?: { x: number; y: number }) {
+    if (this.novelInstructionCardVisible) {
+      this.hideNovelInstructionCard();
+    } else {
+      this.showNovelInstructionCard(position);
+    }
   }
 
   // Memory panel methods

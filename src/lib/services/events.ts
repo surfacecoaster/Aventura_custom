@@ -106,18 +106,18 @@ export interface CheckpointRestoredEvent {
 export interface StoryLoadedEvent {
   type: 'StoryLoaded';
   storyId: string;
-  mode: 'adventure' | 'creative-writing';
+  mode: 'adventure' | 'creative-writing' | 'novel';
 }
 
 export interface StoryCreatedEvent {
   type: 'StoryCreated';
   storyId: string;
-  mode: 'adventure' | 'creative-writing';
+  mode: 'adventure' | 'creative-writing' | 'novel';
 }
 
 export interface ModeChangedEvent {
   type: 'ModeChanged';
-  mode: 'adventure' | 'creative-writing';
+  mode: 'adventure' | 'creative-writing' | 'novel';
 }
 
 export interface SaveCompleteEvent {
@@ -283,10 +283,10 @@ export function emitSuggestionsReady(suggestions: { text: string; type: string }
   eventBus.emit<SuggestionsReadyEvent>({ type: 'SuggestionsReady', suggestions });
 }
 
-export function emitStoryLoaded(storyId: string, mode: 'adventure' | 'creative-writing'): void {
+export function emitStoryLoaded(storyId: string, mode: 'adventure' | 'creative-writing' | 'novel'): void {
   eventBus.emit<StoryLoadedEvent>({ type: 'StoryLoaded', storyId, mode });
 }
 
-export function emitModeChanged(mode: 'adventure' | 'creative-writing'): void {
+export function emitModeChanged(mode: 'adventure' | 'creative-writing' | 'novel'): void {
   eventBus.emit<ModeChangedEvent>({ type: 'ModeChanged', mode });
 }
