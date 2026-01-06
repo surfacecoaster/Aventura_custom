@@ -15,6 +15,7 @@
   let confirmingDeleteId = $state<string | null>(null);
   let droppingItemId = $state<string | null>(null);
   let dropLocationId = $state<string>('');
+  let expandedCards = $state<Set<string>>(new Set());
 
   const worldItems = $derived(story.items.filter(item => item.location !== 'inventory'));
 
@@ -95,6 +96,35 @@
       location: dropLocationId,
     });
     cancelDrop();
+  }
+
+  function truncateText(text: string, maxLines: number = 4): string {
+    // Approximate character count per line based on typical card width
+    // This is more accurate than just counting \n characters
+    const charsPerLine = 60; // Approximate characters per visual line
+    const maxChars = maxLines * charsPerLine;
+    
+    if (text.length <= maxChars) return text;
+    
+    // Find the last space before our character limit to avoid cutting words
+    let truncateAt = maxChars;
+    while (truncateAt > 0 && text[truncateAt] !== ' ' && text[truncateAt] !== '\n') {
+      truncateAt--;
+    }
+    
+    if (truncateAt <= 0) return text.substring(0, maxChars) + '...';
+    
+    return text.substring(0, truncateAt) + '...';
+  }
+
+  function toggleExpand(cardId: string) {
+    const newSet = new Set(expandedCards);
+    if (newSet.has(cardId)) {
+      newSet.delete(cardId);
+    } else {
+      newSet.add(cardId);
+    }
+    expandedCards = newSet;
   }
 
   function getLocationLabel(locationId: string) {
@@ -189,7 +219,21 @@
             </div>
           </div>
           {#if item.description}
-            <p class="mt-1 break-words text-sm text-surface-400">{item.description}</p>
+            {@const isExpanded = expandedCards.has(item.id)}
+            {@const displayText = isExpanded ? item.description : truncateText(item.description)}
+            {@const charsPerLine = 80}
+            {@const showExpandButton = item.description.length > charsPerLine * 4}
+            <p class="mt-1 break-words text-sm text-surface-400">{displayText}</p>
+            {#if showExpandButton}
+              <div class="flex justify-end mt-1">
+                <button
+                  class="btn-ghost rounded p-1 text-xs text-surface-400 hover:text-surface-200"
+                  onclick={() => toggleExpand(item.id)}
+                >
+                  {isExpanded ? 'Show less' : 'Show more'}
+                </button>
+              </div>
+            {/if}
           {/if}
           {#if editingId === item.id}
             <div class="mt-3 space-y-2">
@@ -461,7 +505,21 @@
             </div>
           </div>
           {#if item.description}
-            <p class="mt-1 break-words text-sm text-surface-400">{item.description}</p>
+            {@const isExpanded = expandedCards.has(item.id)}
+            {@const displayText = isExpanded ? item.description : truncateText(item.description)}
+            {@const charsPerLine = 80}
+            {@const showExpandButton = item.description.length > charsPerLine * 4}
+            <p class="mt-1 break-words text-sm text-surface-400">{displayText}</p>
+            {#if showExpandButton}
+              <div class="flex justify-end mt-1">
+                <button
+                  class="btn-ghost rounded p-1 text-xs text-surface-400 hover:text-surface-200"
+                  onclick={() => toggleExpand(item.id)}
+                >
+                  {isExpanded ? 'Show less' : 'Show more'}
+                </button>
+              </div>
+            {/if}
           {/if}
           {#if editingId === item.id}
             <div class="mt-3 space-y-2">
