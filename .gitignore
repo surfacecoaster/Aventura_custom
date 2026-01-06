@@ -1,53 +1,241 @@
-```
-# Compiled and build artifacts
-*.pyc
-__pycache__/
-*.o
-*.obj
+# =============================================================================
+# Aventura .gitignore
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Environment & Secrets
+# -----------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# Keystore files (Android signing)
+*.keystore
+*.jks
+keystore.properties
+keystore-base64.txt
+
+# -----------------------------------------------------------------------------
+# Dependencies
+# -----------------------------------------------------------------------------
+node_modules/
+.pnpm-store/
+.yarn/
+.npm/
+
+# -----------------------------------------------------------------------------
+# Build Outputs
+# -----------------------------------------------------------------------------
 dist/
 build/
-target/
+.svelte-kit/
+.output/
+.vercel/
+.netlify/
+
+# -----------------------------------------------------------------------------
+# Rust / Tauri
+# -----------------------------------------------------------------------------
+src-tauri/target/
+src-tauri/gen/
+src-tauri/WixTools/
+src-tauri/Cargo.lock.bak
+
+# SQLite databases (runtime data)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# Aventura story files (user data, not source code)
+*.avt
+
+# -----------------------------------------------------------------------------
+# Android Build Artifacts
+# -----------------------------------------------------------------------------
+*.apk
+*.aab
+*.idsig
+*.dex
 *.class
-*.exe
-*.dll
-*.so
-*.a
-*.out
 
-# Dependencies
-node_modules/
-venv/
-.venv/
-.env
-.env.local
-.env.*
-.julia/
-zig*/
-.jest/
-.nyc_output/
-coverage/
-htmlcov/
-.coverage
+# Android Studio / Gradle
+.gradle/
+local.properties
+*.iml
+.navigation/
+captures/
+.externalNativeBuild/
+.cxx/
+*.hprof
 
-# Logs and temp files
-*.log
-*.tmp
-*.swp
-*.swo
+# Generated Android files
+src-tauri/gen/android/.gradle/
+src-tauri/gen/android/build/
+src-tauri/gen/android/app/build/
+src-tauri/gen/android/local.properties
+src-tauri/gen/android/.idea/
+src-tauri/gen/android/*.iml
 
-# Editors
-.vscode/
+# -----------------------------------------------------------------------------
+# iOS Build Artifacts
+# -----------------------------------------------------------------------------
+src-tauri/gen/apple/build/
+*.xcworkspace/
+*.xcuserdata/
+Pods/
+Podfile.lock
+DerivedData/
+*.ipa
+*.dSYM.zip
+*.dSYM/
+
+# -----------------------------------------------------------------------------
+# IDE & Editor
+# -----------------------------------------------------------------------------
 .idea/
+.vscode/
 *.swp
 *.swo
+*.swn
+*~
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+.project
+.classpath
+.settings/
 
-# System files
+# JetBrains
+*.iws
+.idea_modules/
+
+# -----------------------------------------------------------------------------
+# Operating System
+# -----------------------------------------------------------------------------
+# macOS
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.AppleDouble
+.LSOverride
+Icon?
+
+# Windows
 Thumbs.db
-```
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+desktop.ini
+$RECYCLE.BIN/
+*.lnk
 
-Wait, I need to reconsider this. The modified file is just a Svelte component file (`src/lib/components/story/NovelInstructionCard.svelte`), which is a source code file. There are no build artifacts, dependency directories, or temporary files in the changes list. According to rule #6, if the changes contain only source or config files and no build artifacts, dependencies, or temp files, I should output an empty .gitignore.
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
 
-Since only a Svelte source file was modified, the output should be:
+# -----------------------------------------------------------------------------
+# Logs
+# -----------------------------------------------------------------------------
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.pnpm-store/
 
-(empty — output nothing)
+# -----------------------------------------------------------------------------
+# Testing & Coverage
+# -----------------------------------------------------------------------------
+coverage/
+.nyc_output/
+*.lcov
+.vitest/
+test-results/
+playwright-report/
+playwright/.cache/
+
+# -----------------------------------------------------------------------------
+# Cache & Temp
+# -----------------------------------------------------------------------------
+.cache/
+.parcel-cache/
+.turbo/
+*.tsbuildinfo
+.temp/
+.tmp/
+temp/
+tmp/
+*.bak
+*.backup
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# -----------------------------------------------------------------------------
+# Tauri Build Cache
+# -----------------------------------------------------------------------------
+.tauri/
+
+# -----------------------------------------------------------------------------
+# Release Artifacts
+# -----------------------------------------------------------------------------
+releases/
+*.tar.gz
+*.zip
+*.dmg
+*.msi
+*.exe
+*.AppImage
+
+# -----------------------------------------------------------------------------
+# Debug Symbols
+# -----------------------------------------------------------------------------
+*.pdb
+*.map
+
+# -----------------------------------------------------------------------------
+# Documentation (development only, not for repo)
+# -----------------------------------------------------------------------------
+prompting_guide.md
+architecture.md
+CLAUDE.md
+
+# Temporary image files used during icon creation
+# (sun2022.png is kept as the app icon source)
+!sun2022.png
+sunicon.*
+
+# -----------------------------------------------------------------------------
+# Claude Code
+# -----------------------------------------------------------------------------
+.claude/
+
+# -----------------------------------------------------------------------------
+# AUR Package (separate repo)
+# -----------------------------------------------------------------------------
+aur/
+
+# -----------------------------------------------------------------------------
+# Miscellaneous
+# -----------------------------------------------------------------------------
+*.local
+.env*.local
+aventura-release.keystore.old
+design.md
+prompting_guide.md
