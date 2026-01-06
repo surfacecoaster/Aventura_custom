@@ -3,7 +3,7 @@
   import { story } from '$lib/stores/story.svelte';
   import { aiService } from '$lib/services/ai';
   import { Lightbulb, Send, X } from 'lucide-svelte';
-  import { onMount } from 'svelte';
+  import { onMount, afterUpdate } from 'svelte';
 
   let instructionInput = $state('');
   let isGenerating = $state(false);
@@ -18,8 +18,7 @@
     }
   });
 
-  // Reactive statement to update position when UI store changes
-  $effect(() => {
+  afterUpdate(() => {
     if (cardRef && ui.novelInstructionCardVisible) {
       const { x, y } = ui.novelInstructionCardPosition;
       cardRef.style.left = `${x}px`;
