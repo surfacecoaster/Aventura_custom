@@ -172,36 +172,24 @@
       {#each story.characters as character (character.id)}
         {@const StatusIcon = getStatusIcon(character.status)}
         {@const isProtagonist = character.relationship === 'self'}
-        <div class="card p-3">
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div class="flex min-w-0 items-start gap-2">
+        <div class="card p-2">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
               <div class="rounded-full bg-surface-700 p-1.5 {getStatusColor(character.status)}">
                 <StatusIcon class="h-4 w-4" />
               </div>
-              <div class="min-w-0 flex-1">
-                <div class="flex flex-wrap items-center gap-2">
-                  <span class="break-words font-medium text-surface-100">{character.name}</span>
-                  {#if isProtagonist}
-                    <span class="inline-flex items-center gap-1 rounded-full bg-accent-500/20 px-2 py-0.5 text-xs text-accent-300">
-                      <Star class="h-3 w-3" /> Protagonist
-                    </span>
-                  {:else if character.relationship}
-                    <span class="rounded-full bg-surface-700 px-2 py-0.5 text-xs text-surface-400">
-                      {character.relationship}
-                    </span>
-                  {/if}
-                </div>
-                {#if character.traits.length > 0}
-                  <p class="mt-1 break-words text-xs text-surface-500">
-                    Traits: {character.traits.join(', ')}
-                  </p>
-                {/if}
-                {#if character.description}
-                  <p class="mt-1 break-words text-sm text-surface-400">{character.description}</p>
-                {/if}
-              </div>
+              <span class="break-words font-medium text-surface-100">{character.name}</span>
+              {#if isProtagonist}
+                <span class="inline-flex items-center gap-1 rounded-full bg-accent-500/20 px-2 py-0.5 text-xs text-accent-300">
+                  <Star class="h-3 w-3" /> Protagonist
+                </span>
+              {:else if character.relationship}
+                <span class="rounded-full bg-surface-700 px-2 py-0.5 text-xs text-surface-400">
+                  {character.relationship}
+                </span>
+              {/if}
             </div>
-            <div class="flex items-center gap-1 self-end sm:self-auto">
+            <div class="flex items-center gap-1">
               {#if confirmingDeleteId === character.id}
                 <button
                   class="btn-ghost rounded px-2 py-1 text-xs text-red-400 hover:bg-red-500/20"
@@ -243,6 +231,14 @@
               {/if}
             </div>
           </div>
+          {#if character.traits.length > 0}
+            <p class="mt-1 break-words text-xs text-surface-500">
+              Traits: {character.traits.join(', ')}
+            </p>
+          {/if}
+          {#if character.description}
+            <p class="mt-1 break-words text-sm text-surface-400">{character.description}</p>
+          {/if}
 
           {#if pendingProtagonistId === character.id}
             <div class="mt-3 space-y-2 rounded-md border border-surface-700/60 bg-surface-800/40 p-2">

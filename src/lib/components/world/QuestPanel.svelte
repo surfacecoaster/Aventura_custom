@@ -138,25 +138,18 @@
       <h4 class="text-sm font-medium text-surface-400">Active</h4>
       {#each story.pendingQuests as beat (beat.id)}
         {@const StatusIcon = getStatusIcon(beat.status)}
-        <div class="card p-3">
-          <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-            <div class="flex min-w-0 items-start gap-2">
+        <div class="card p-2">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
               <div class={getStatusColor(beat.status)}>
                 <StatusIcon class="h-5 w-5" />
               </div>
-              <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-2">
-                  <span class="break-words font-medium text-surface-100">{beat.title}</span>
-                  <span class="rounded-full bg-surface-700 px-2 py-0.5 text-xs text-surface-400">
-                    {getTypeLabel(beat.type)}
-                  </span>
-                </div>
-                {#if beat.description}
-                  <p class="mt-1 break-words text-sm text-surface-400">{beat.description}</p>
-                {/if}
-              </div>
+              <span class="break-words font-medium text-surface-100">{beat.title}</span>
+              <span class="rounded-full bg-surface-700 px-2 py-0.5 text-xs text-surface-400">
+                {getTypeLabel(beat.type)}
+              </span>
             </div>
-            <div class="flex items-center gap-1 self-end sm:self-auto">
+            <div class="flex items-center gap-1">
               {#if confirmingDeleteId === beat.id}
                 <button
                   class="btn-ghost rounded px-2 py-1 text-xs text-red-400 hover:bg-red-500/20"
@@ -188,6 +181,9 @@
               {/if}
             </div>
           </div>
+          {#if beat.description}
+            <p class="mt-1 break-words text-sm text-surface-400">{beat.description}</p>
+          {/if}
           {#if editingId === beat.id}
             <div class="mt-3 space-y-2">
               <input
