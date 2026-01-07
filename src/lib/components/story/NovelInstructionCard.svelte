@@ -3,28 +3,9 @@
   import { story } from '$lib/stores/story.svelte';
   import { aiService } from '$lib/services/ai';
   import { Lightbulb, Send, X } from 'lucide-svelte';
-  import { onMount, afterUpdate } from 'svelte';
-
   let instructionInput = $state('');
   let isGenerating = $state(false);
   let cardRef: HTMLDivElement;
-
-  // Position the card based on UI store state
-  onMount(() => {
-    if (cardRef) {
-      const { x, y } = ui.novelInstructionCardPosition;
-      cardRef.style.left = `${x}px`;
-      cardRef.style.top = `${y}px`;
-    }
-  });
-
-  afterUpdate(() => {
-    if (cardRef && ui.novelInstructionCardVisible) {
-      const { x, y } = ui.novelInstructionCardPosition;
-      cardRef.style.left = `${x}px`;
-      cardRef.style.top = `${y}px`;
-    }
-  });
 
   async function handleSubmit() {
     if (!instructionInput.trim() || !story.currentStory || isGenerating) return;

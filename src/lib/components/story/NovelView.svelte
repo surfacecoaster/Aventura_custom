@@ -5,7 +5,7 @@
   import { aiService } from '$lib/services/ai';
   import { countTokens } from '$lib/services/tokenizer';
   import { Book, Loader2, Send, X, Slash } from 'lucide-svelte';
-  import { onMount, effect } from 'svelte';
+  import { onMount } from 'svelte';
   
   let novelCanvas: HTMLDivElement;
   let instructionCard: HTMLDivElement;
@@ -122,15 +122,6 @@
     document.addEventListener('click', handleCanvasClick);
   });
   
-  // Reactive effect to handle instruction card visibility (replaces afterUpdate)
-  effect(() => {
-    if (isInstructionCardVisible && instructionCard) {
-      // Ensure card is visible and properly positioned
-      instructionCard.style.display = 'block';
-    } else if (instructionCard) {
-      instructionCard.style.display = 'none';
-    }
-  });
 </script>
 
 <div class="flex h-full flex-col">
@@ -182,64 +173,8 @@
         </div>
       {/if}
     </div>
-    
-    <!-- Instruction Card (floating) -->
-    <div
-      bind:this={instructionCard}
-      class="fixed z-10 w-80 bg-surface-800 border border-surface-600 rounded-lg p-4 shadow-lg"
-      style="display: none;"
-    >
-      <div class="flex items-center justify-between mb-3">
-        <h4 class="font-medium text-surface-100">AI Instructions</h4>
-        <button
-          class="text-surface-400 hover:text-surface-200"
-          on:click={() => isInstructionCardVisible = false}
-        >
-          <X class="h-4 w-4" />
-        </button>
-      </div>
-      
-      <textarea
-        id="instruction-textarea"
-        bind:value={instructionText}
-        placeholder="Describe what you want the AI to write next..."
-        class="w-full p-2 bg-surface-900 border border-surface-700 rounded text-surface-200 min-h-[100px] resize-y"
-        on:keydown={(e) => {
-          if (e.key === 'Enter' && e.ctrlKey) {
-            e.preventDefault();
-            handleInstructionSubmit();
-          }
-        }}
-      ></textarea>
-      
-      <div class="mt-3 flex justify-end gap-2">
-        <button
-          class="btn btn-secondary px-3 py-1 text-sm"
-          on:click={() => isInstructionCardVisible = false}
-          disabled={isGenerating}
-        >
-          Cancel
-        </button>
-        <button
-          class="btn btn-primary px-3 py-1 text-sm flex items-center gap-1"
-          on:click={handleInstructionSubmit}
-          disabled={!instructionText.trim() || isGenerating}
-        >
-          {#if isGenerating}
-            <Loader2 class="h-3 w-3 animate-spin" />
-            Generating...
-          {:else}
-            <Send class="h-3 w-3" />
-            Generate
-          {/if}
-        </button>
-      </div>
-      
-      <div class="mt-2 text-xs text-surface-500">
-        <p>Press <kbd class="px-1 py-0.5 rounded bg-surface-700">Ctrl+Enter</kbd> to submit</p>
-      </div>
-    </div>
   </div>
+  
   
   <!-- Bottom Status Bar -->
   <div class="border-t border-surface-700 bg-surface-800 p-3 sm:p-4">
@@ -283,3 +218,61 @@
     overflow-y: auto;
   }
 </style>
+
+<!-- Instruction Card (floating) -->
+{#if isInstructionCardVisible}
+  <div
+    bind:this={instructionCard}
+    class="fixed z-10 w-80 bg-surface-800 border border-surface-600 rounded-lg p-4 shadow-lg"
+  >
+    <div class="flex items-center justify-between mb-3">
+      <h4 class="font-medium text-surface-100">AI Instructions</h4>
+      <button
+        class="text-surface-400 hover:text-surface-200"
+        on:click={() => isInstructionCardVisible = false}
+      >
+        <X class="h-4 w-4" />
+      </button>
+    </div>
+
+    <textarea
+      id="instruction-textarea"
+      bind:value={instructionText}
+      placeholder="Describe what you want the AI to write next..."
+      class="w-full p-2 bg-surface-900 border border-surface-700 rounded text-surface-200 min-h-[100px] resize-y"
+      on:keydown={(e) => {
+        if (e.key === 'Enter' && e.ctrlKey) {
+          e.preventDefault();
+          handleInstructionSubmit();
+        }
+      }}
+    ></textarea>
+
+    <div class="mt-3 flex justify-end gap-2">
+      <button
+        class="btn btn-secondary px-3 py-1 text-sm"
+        on:click={() => isInstructionCardVisible = false}
+        disabled={isGenerating}
+      >
+        Cancel
+      </button>
+      <button
+        class="btn btn-primary px-3 py-1 text-sm flex items-center gap-1"
+        on:click={handleInstructionSubmit}
+        disabled={!instructionText.trim() || isGenerating}
+      >
+        {#if isGenerating}
+          <Loader2 class="h-3 w-3 animate-spin" />
+          Generating...
+        {:else}
+          <Send class="h-3 w-3" />
+          Generate
+        {/if}
+      </button>
+    </div>
+
+    <div class="mt-2 text-xs text-surface-500">
+      <p>Press <kbd class="px-1 py-0.5 rounded bg-surface-700">Ctrl+Enter</kbd> to submit</p>
+    </div>
+  </div>
+{/if}

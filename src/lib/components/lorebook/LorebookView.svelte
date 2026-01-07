@@ -2,7 +2,7 @@
   import type { Entry, EntryType } from '$lib/types';
   import { ui } from '$lib/stores/ui.svelte';
   import { story } from '$lib/stores/story.svelte';
-  import { onMount, untrack } from 'svelte';
+  import { onMount } from 'svelte';
   import LorebookList from './LorebookList.svelte';
   import LorebookDetail from './LorebookDetail.svelte';
   import LorebookEntryForm from './LorebookEntryForm.svelte';
