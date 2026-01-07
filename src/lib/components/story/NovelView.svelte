@@ -9,6 +9,8 @@
   import StoryEntry from './StoryEntry.svelte';
   import StreamingEntry from './StreamingEntry.svelte';
   
+  const STORAGE_KEY = 'novel-instruction-cards';
+  
   let novelCanvas: HTMLDivElement;
   let instructionText = $state('');
   let isGenerating = $state(false);
@@ -22,6 +24,7 @@
   let instructionCards = $state<Array<{
     id: string;
     text: string;
+    targetWordCount: number;
     generatedEntryId?: string;
   }>>([]);
   
@@ -90,7 +93,8 @@
       // Create a new instruction card
       const newCard = {
         id: crypto.randomUUID(),
-        text: ''
+        text: '',
+        targetWordCount: 300
       };
       instructionCards = [...instructionCards, newCard];
       instructionText = '';
@@ -126,7 +130,7 @@
       const context = contextEntries.map(entry => entry.content).join('\n\n');
       
       // Prepare prompt for AI
-      const prompt = `INSTRUCTION: ${instruction}\n\nCONTEXT:\n${context}`;
+      const prompt = `INSTRUCTION: ${instruction}\n\nTARGET_WORD_COUNT: ${card.targetWordCount}\n\nCONTEXT:\n${context}`;
       
       // Generate AI response
       const response = await aiService.generateStoryContinuation(
@@ -172,6 +176,21 @@
   // Lifecycle hooks
   onMount(() => {
     window.addEventListener('keydown', handleKeyDown);
+    
+    // Load persisted instruction cards from localStorage
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        instructionCards = JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to load instruction cards:', e);
+      }
+    }
+  });
+  
+  // Persist instruction cards whenever they change
+  $effect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(instructionCards));
   });
   
 </script>
@@ -358,7 +377,17 @@
                 }}
               ></textarea>
 
-              <div class="mt-3 flex justify-end gap-2">
+              <div class="mt-3 flex items-center justify-between gap-2">
+                <label class="flex items-center gap-2 text-sm text-surface-300">
+                  <span>Target words:</span>
+                  <input
+                    type="number"
+                    bind:value={card.targetWordCount}
+                    min="50"
+                    max="10000"
+                    class="w-20 px-2 py-1 bg-surface-900 border border-surface-600 rounded text-surface-200 text-sm no-spinners"
+                  />
+                </label>
                 <button
                   class="btn btn-primary px-3 py-1 text-sm flex items-center gap-1 cursor-pointer"
                   onclick={() => handleInstructionSubmit(card.id)}
@@ -404,7 +433,8 @@
           onclick={() => {
             const newCard = {
               id: crypto.randomUUID(),
-              text: ''
+              text: '',
+              targetWordCount: 300
             };
             instructionCards = [...instructionCards, newCard];
             showInstructionHint = false;
@@ -432,5 +462,15 @@
     border-radius: 4px;
     padding: 2px 6px;
     border: 1px solid var(--border-primary);
+  }
+  
+  /* Hide number input spinners */
+  .no-spinners::-webkit-inner-spin-button,
+  .no-spinners::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .no-spinners {
+    -moz-appearance: textfield;
   }
 </style>
