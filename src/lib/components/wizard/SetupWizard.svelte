@@ -1446,7 +1446,7 @@
           <!-- POV Selection -->
           <div>
             <label class="mb-2 block text-sm font-medium text-surface-300">Point of View</label>
-            <div class="grid gap-2 {selectedMode === 'creative-writing' ? 'grid-cols-3' : 'grid-cols-2'}">
+            <div class="grid gap-2 {selectedMode === 'creative-writing' || selectedMode === 'novel' ? 'grid-cols-3' : 'grid-cols-2'}">
               {#each povOptions as option}
                 <button
                   class="card p-3 text-center transition-all"

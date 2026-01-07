@@ -32,19 +32,9 @@
   }
 
   // Keyboard shortcut handler for Novel Mode
+  // NOTE: Novel Mode now handles '/' shortcut internally with inline instruction cards
+  // The floating NovelInstructionCard is kept for compatibility but not triggered by '/'
   function handleKeyDown(event: KeyboardEvent) {
-    // Check if we're in Novel Mode and the '/' key is pressed
-    if (event.key === '/' && story.currentStory?.mode === 'novel') {
-      // Prevent default behavior (like focusing search)
-      event.preventDefault();
-      
-      // Show instruction card at cursor position
-      ui.showNovelInstructionCard({
-        x: event.clientX,
-        y: event.clientY
-      });
-    }
-    
     // Close instruction card with Escape key
     if (event.key === 'Escape' && ui.novelInstructionCardVisible) {
       ui.hideNovelInstructionCard();
@@ -112,8 +102,11 @@
   <!-- Debug Log Modal -->
   <DebugLogModal />
 
-  <!-- Novel Mode Instruction Card -->
-  <NovelInstructionCard />
+  <!-- Novel Mode Instruction Card (legacy - kept for compatibility) -->
+  <!-- NovelView.svelte now handles instruction cards inline instead -->
+  {#if false}
+    <NovelInstructionCard />
+  {/if}
 
   <!-- Floating Debug Button (when debug mode enabled) -->
   {#if settings.uiSettings.debugMode}
