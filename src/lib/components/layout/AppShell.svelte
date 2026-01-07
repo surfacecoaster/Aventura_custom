@@ -96,7 +96,7 @@
   <!-- Floating Debug Button (when debug mode enabled) -->
   {#if settings.uiSettings.debugMode}
     <button
-      class="fixed bottom-20 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-amber-600 text-white shadow-lg hover:bg-amber-500 transition-colors sm:bottom-4"
+      class="fixed bottom-safe-20 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-amber-600 text-white shadow-lg hover:bg-amber-500 transition-colors sm:bottom-4"
       onclick={() => ui.toggleDebugModal()}
       title="View API Debug Logs"
     >

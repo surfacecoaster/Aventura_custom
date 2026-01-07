@@ -1139,7 +1139,7 @@
       {#if ui.isGenerating}
         <button
           onclick={handleStopGeneration}
-          class="btn self-end px-3 sm:px-4 py-3 min-h-[44px] min-w-[44px] bg-red-500/20 text-red-400 hover:bg-red-500/30"
+          class="btn self-stretch px-3 sm:px-4 py-3 min-h-[44px] min-w-[44px] bg-red-500/20 text-red-400 hover:bg-red-500/30"
           title="Stop generation"
         >
           <Square class="h-5 w-5" />
@@ -1148,7 +1148,7 @@
         <button
           onclick={handleSubmit}
           disabled={!inputValue.trim() || ui.isGenerating}
-          class="btn btn-primary self-end px-3 sm:px-4 py-3 min-h-[44px] min-w-[44px]"
+          class="btn btn-primary self-stretch px-3 sm:px-4 py-3 min-h-[44px] min-w-[44px]"
           title="Continue story"
         >
           <Feather class="h-5 w-5" />
@@ -1223,7 +1223,7 @@
       {#if ui.isGenerating}
         <button
           onclick={handleStopGeneration}
-          class="btn self-end px-3 sm:px-4 py-3 min-h-[44px] min-w-[44px] bg-red-500/20 text-red-400 hover:bg-red-500/30"
+          class="btn self-stretch px-3 sm:px-4 py-3 min-h-[44px] min-w-[44px] bg-red-500/20 text-red-400 hover:bg-red-500/30"
           title="Stop generation"
         >
           <Square class="h-5 w-5" />
@@ -1232,7 +1232,7 @@
         <button
           onclick={handleSubmit}
           disabled={!inputValue.trim() || ui.isGenerating}
-          class="btn btn-primary self-end px-3 sm:px-4 py-3 min-h-[44px] min-w-[44px]"
+          class="btn btn-primary self-stretch px-3 sm:px-4 py-3 min-h-[44px] min-w-[44px]"
         >
           <Send class="h-5 w-5" />
         </button>

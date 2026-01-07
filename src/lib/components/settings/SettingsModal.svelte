@@ -575,7 +575,7 @@
     </div>
 
     <!-- Content -->
-    <div class="flex-1 overflow-y-auto py-4 min-h-0">
+    <div class="flex-1 overflow-y-auto pt-4 pb-modal-safe min-h-0">
       {#if activeTab === 'api'}
         <div class="space-y-4">
           <!-- API Profiles Management Section -->

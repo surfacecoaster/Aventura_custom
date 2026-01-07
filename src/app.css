@@ -853,6 +853,33 @@
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
+/* Safe area positioning for fixed elements (adjusts position, not padding) */
+.bottom-safe-4 {
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0));
+}
+
+.bottom-safe-20 {
+  bottom: calc(5rem + env(safe-area-inset-bottom, 0));
+}
+
+.left-safe-4 {
+  left: calc(1rem + env(safe-area-inset-left, 0));
+}
+
+.right-safe-4 {
+  right: calc(1rem + env(safe-area-inset-right, 0));
+}
+
+/* Bottom sheet modal footers - adds safe area inset on mobile only */
+.pb-modal-safe {
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+}
+@media (min-width: 640px) {
+  .pb-modal-safe {
+    padding-bottom: 1rem;
+  }
+}
+
 /* Edge-to-edge support for Android */
 html, body {
   /* Ensure the app fills the full viewport including system bars */

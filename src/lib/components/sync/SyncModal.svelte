@@ -416,7 +416,7 @@
       </div>
 
       <!-- Content -->
-      <div class="flex-1 overflow-y-auto p-4 -mx-4 sm:mx-0">
+      <div class="flex-1 overflow-y-auto p-4 pb-modal-safe -mx-4 sm:mx-0">
         {#if error}
           <div
             class="mb-4 rounded-lg bg-red-500/20 p-3 text-sm text-red-400 flex items-center gap-2"
@@ -679,7 +679,7 @@
 
       <!-- Footer -->
       {#if ui.syncMode === 'connected' && !showConflictWarning && !loading && !syncSuccess}
-        <div class="border-t border-surface-700 p-4 -mx-4 -mb-4 sm:mx-0 sm:mb-0">
+        <div class="border-t border-surface-700 px-4 pt-4 pb-modal-safe -mx-4 -mb-4 sm:mx-0 sm:mb-0">
           <div class="flex justify-end gap-2">
             <button class="btn btn-secondary" onclick={close}>Cancel</button>
             {#if selectedRemoteStory}
