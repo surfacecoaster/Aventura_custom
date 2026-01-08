@@ -8,6 +8,52 @@
   let savedScrollTop = 0;
   let savedScrollHeight = 0;
 
+  // Throttled snapshot of logs - only updates every 500ms when modal is open
+  let throttledLogs = $state<DebugLogEntry[]>([]);
+  let lastUpdateTime = 0;
+  let pendingUpdate: ReturnType<typeof setTimeout> | null = null;
+
+  // Update throttled logs when modal opens or logs change (throttled)
+  $effect(() => {
+    if (!ui.debugModalOpen) {
+      // Clear pending updates when modal closes
+      if (pendingUpdate) {
+        clearTimeout(pendingUpdate);
+        pendingUpdate = null;
+      }
+      return;
+    }
+
+    const logs = ui.debugLogs;
+    const now = Date.now();
+    const timeSinceLastUpdate = now - lastUpdateTime;
+
+    // If enough time has passed, update immediately
+    if (timeSinceLastUpdate >= 500) {
+      throttledLogs = [...logs];
+      lastUpdateTime = now;
+      if (pendingUpdate) {
+        clearTimeout(pendingUpdate);
+        pendingUpdate = null;
+      }
+    } else if (!pendingUpdate) {
+      // Schedule an update for later
+      pendingUpdate = setTimeout(() => {
+        throttledLogs = [...ui.debugLogs];
+        lastUpdateTime = Date.now();
+        pendingUpdate = null;
+      }, 500 - timeSinceLastUpdate);
+    }
+  });
+
+  // Sync immediately when modal opens
+  $effect(() => {
+    if (ui.debugModalOpen) {
+      throttledLogs = [...ui.debugLogs];
+      lastUpdateTime = Date.now();
+    }
+  });
+
   function formatTimestamp(timestamp: number): string {
     return new Date(timestamp).toLocaleTimeString('en-US', {
       hour12: false,
@@ -24,22 +70,35 @@
     return `${(duration / 1000).toFixed(2)}s`;
   }
 
-  function formatJson(data: Record<string, unknown>): string {
+  // Cache for formatted JSON to avoid re-computing on every render
+  const jsonCache = new Map<string, string>();
+
+  function formatJson(entry: DebugLogEntry): string {
+    // Create cache key from entry id and renderNewlines setting
+    const cacheKey = `${entry.id}-${renderNewlines}`;
+    const cached = jsonCache.get(cacheKey);
+    if (cached) return cached;
+
     try {
-      let json = JSON.stringify(data, null, 2);
+      let json = JSON.stringify(entry.data, null, 2);
       if (renderNewlines) {
-        // Replace escaped newlines with actual newlines in string values
         json = json.replace(/\\n/g, '\n');
       }
+      // Limit cache size
+      if (jsonCache.size > 200) {
+        const firstKey = jsonCache.keys().next().value;
+        if (firstKey) jsonCache.delete(firstKey);
+      }
+      jsonCache.set(cacheKey, json);
       return json;
     } catch {
-      return String(data);
+      return String(entry.data);
     }
   }
 
   async function copyToClipboard(entry: DebugLogEntry) {
     try {
-      const text = formatJson(entry.data);
+      const text = formatJson(entry);
       await navigator.clipboard.writeText(text);
       copiedId = entry.id;
       setTimeout(() => {
@@ -52,37 +111,38 @@
 
   function handleClearLogs() {
     ui.clearDebugLogs();
+    jsonCache.clear();
   }
 
-  // Group logs by request/response pairs
+  // Group logs by request/response pairs - only compute when modal is open
   let groupedLogs = $derived.by(() => {
-    const logs = ui.debugLogs;
+    if (!ui.debugModalOpen) return [];
+
+    const logs = throttledLogs;
     const groups: { request?: DebugLogEntry; response?: DebugLogEntry }[] = [];
-    const requestMap = new Map<string, number>(); // Map request ID to group index
+    const requestMap = new Map<string, number>();
 
     for (const log of logs) {
       if (log.type === 'request') {
         groups.push({ request: log });
         requestMap.set(log.id, groups.length - 1);
       } else {
-        // Try to find matching request
         const requestId = log.id.replace('-response', '');
         const groupIndex = requestMap.get(requestId);
         if (groupIndex !== undefined) {
           groups[groupIndex].response = log;
         } else {
-          // Orphan response, add as its own group
           groups.push({ response: log });
         }
       }
     }
 
-    return groups.reverse(); // Show newest first
+    return groups.reverse();
   });
 
   // Save scroll position before DOM updates
   $effect.pre(() => {
-    // Track groupedLogs to trigger this effect when logs change
+    if (!ui.debugModalOpen) return;
     void groupedLogs;
     if (scrollContainer) {
       savedScrollTop = scrollContainer.scrollTop;
@@ -90,8 +150,9 @@
     }
   });
 
-  // Restore scroll position after DOM updates (compensate for new content at top)
+  // Restore scroll position after DOM updates
   $effect(() => {
+    if (!ui.debugModalOpen) return;
     void groupedLogs;
     if (scrollContainer && savedScrollHeight > 0) {
       const heightDiff = scrollContainer.scrollHeight - savedScrollHeight;
@@ -180,7 +241,7 @@
                         </button>
                       </div>
                     </div>
-                    <pre class="p-3 text-xs text-surface-300 overflow-x-auto max-h-64 overflow-y-auto font-mono whitespace-pre-wrap bg-surface-900/50">{formatJson(group.request.data)}</pre>
+                    <pre class="p-3 text-xs text-surface-300 overflow-x-auto max-h-64 overflow-y-auto font-mono whitespace-pre-wrap bg-surface-900/50">{formatJson(group.request)}</pre>
                   </div>
                 {/if}
 
@@ -218,7 +279,7 @@
                         </button>
                       </div>
                     </div>
-                    <pre class="p-3 text-xs overflow-x-auto max-h-64 overflow-y-auto font-mono whitespace-pre-wrap bg-surface-900/50" class:text-surface-300={!group.response.error} class:text-red-300={group.response.error}>{formatJson(group.response.data)}</pre>
+                    <pre class="p-3 text-xs overflow-x-auto max-h-64 overflow-y-auto font-mono whitespace-pre-wrap bg-surface-900/50" class:text-surface-300={!group.response.error} class:text-red-300={group.response.error}>{formatJson(group.response)}</pre>
                   </div>
                 {/if}
               </div>
