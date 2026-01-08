@@ -86,7 +86,7 @@
     <div class="flex items-center gap-3 min-w-0">
       {#if isMobile}
         <button
-          class="btn-ghost p-2 rounded-lg -ml-2"
+          class="btn-ghost rounded-lg p-2 min-h-[44px] min-w-[44px] flex items-center justify-center -ml-2"
           onclick={handleBack}
         >
           <ArrowLeft class="h-5 w-5" />
@@ -130,7 +130,7 @@
   </div>
 
   <!-- Content -->
-  <div class="flex-1 overflow-y-auto p-4">
+  <div class="flex-1 overflow-y-auto p-4 pb-safe">
     {#if ui.lorebookEditMode}
       <LorebookEntryForm
         {entry}

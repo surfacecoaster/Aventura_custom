@@ -1,5 +1,12 @@
 use tauri_plugin_sql::{Migration, MigrationKind};
 
+mod sync;
+
+use sync::commands::{
+    clear_received_stories, get_received_stories, start_sync_server, stop_sync_server,
+    sync_connect, sync_pull_story, sync_push_story,
+};
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let migrations = vec![
@@ -33,9 +40,16 @@ pub fn run() {
             sql: include_str!("../migrations/005_story_beats_resolved_at.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 6,
+            description: "add_story_retry_state",
+            sql: include_str!("../migrations/006_story_retry_state.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()
+        .manage(sync::SyncState::default())
         .plugin(tauri_plugin_opener::init())
         .plugin(
             tauri_plugin_sql::Builder::default()
@@ -46,6 +60,16 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_http::init())
+        .invoke_handler(tauri::generate_handler![
+            start_sync_server,
+            stop_sync_server,
+            get_received_stories,
+            clear_received_stories,
+            sync_connect,
+            sync_pull_story,
+            sync_push_story,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -189,7 +189,8 @@ class ExportService {
   }
 
   // Import from file content string (for HTML file input / mobile compatibility)
-  async importFromContent(content: string): Promise<{ success: boolean; storyId?: string; error?: string }> {
+  // Set skipImportedSuffix to true for sync operations to keep the original title
+  async importFromContent(content: string, skipImportedSuffix: boolean = false): Promise<{ success: boolean; storyId?: string; error?: string }> {
     try {
       let data: AventuraExport;
       try {
@@ -214,16 +215,17 @@ class ExportService {
       const newStoryId = crypto.randomUUID();
       oldToNewId.set(data.story.id, newStoryId);
 
-      // Create the story with a modified title to indicate it was imported
+      // Create the story with a modified title to indicate it was imported (unless skipped for sync)
       const importedStory: Omit<Story, 'createdAt' | 'updatedAt'> = {
         id: newStoryId,
-        title: `${data.story.title} (Imported)`,
+        title: skipImportedSuffix ? data.story.title : `${data.story.title} (Imported)`,
         description: data.story.description,
         genre: data.story.genre,
         templateId: data.story.templateId,
         mode: data.story.mode || 'adventure',
         settings: data.story.settings,
         memoryConfig: data.story.memoryConfig || null,
+        retryState: null, // Clear retry state on import
       };
 
       await database.createStory(importedStory);

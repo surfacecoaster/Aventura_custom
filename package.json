@@ -1,6 +1,6 @@
 {
   "name": "aventura",
-  "version": "0.2.2",
+  "version": "0.2.7",
   "description": "AI-powered adventure and creative writing frontend",
   "type": "module",
   "scripts": {
@@ -16,12 +16,14 @@
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-dialog": "^2",
     "@tauri-apps/plugin-fs": "^2",
+    "@tauri-apps/plugin-http": "^2.5.4",
     "@tauri-apps/plugin-opener": "^2",
     "@tauri-apps/plugin-process": "^2.3.1",
     "@tauri-apps/plugin-sql": "^2",
     "@tauri-apps/plugin-updater": "^2.9.0",
     "gpt-tokenizer": "^3.4.0",
     "harper.js": "^1.2.0",
+    "html5-qrcode": "^2.3.8",
     "lucide-svelte": "^0.468.0",
     "marked": "^17.0.1"
   },

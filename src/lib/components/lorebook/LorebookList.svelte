@@ -252,7 +252,7 @@
   </div>
 
   <!-- Entry list -->
-  <div class="flex-1 overflow-y-auto p-3 space-y-2">
+  <div class="flex-1 overflow-y-auto p-3 pb-safe space-y-2">
     {#if filteredEntries.length === 0}
       {#if story.lorebookEntries.length === 0}
         <div class="text-center py-8 text-surface-500">

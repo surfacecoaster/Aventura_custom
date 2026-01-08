@@ -302,7 +302,7 @@
     </div>
 
     <!-- Footer -->
-    <div class="flex gap-2 pt-4 border-t border-surface-700">
+    <div class="flex gap-2 pt-4 pb-modal-safe border-t border-surface-700">
       <button
         class="btn-ghost flex-1 py-2 border border-surface-600 rounded-lg"
         onclick={close}

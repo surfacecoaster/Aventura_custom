@@ -70,8 +70,8 @@
   <!-- Center: Navigation tabs -->
   <div class="flex items-center gap-0.5 sm:gap-1">
     <button
-      class="btn-ghost flex items-center gap-1 sm:gap-2 rounded-lg px-2 sm:px-3 py-1.5 min-h-[40px]"
-      class:bg-surface-700={ui.activePanel === 'library' || !story.currentStory}
+      class="btn-ghost nav-tab flex items-center gap-1 sm:gap-2 rounded-lg px-2 sm:px-3 py-1.5 min-h-[40px]"
+      class:nav-tab-active={ui.activePanel === 'library' || !story.currentStory}
       onclick={() => ui.setActivePanel('library')}
       title="Library"
     >
@@ -81,8 +81,8 @@
 
     {#if story.currentStory}
       <button
-        class="btn-ghost flex items-center gap-1 sm:gap-2 rounded-lg px-2 sm:px-3 py-1.5 min-h-[40px]"
-        class:bg-surface-700={ui.activePanel === 'story'}
+        class="btn-ghost nav-tab flex items-center gap-1 sm:gap-2 rounded-lg px-2 sm:px-3 py-1.5 min-h-[40px]"
+        class:nav-tab-active={ui.activePanel === 'story'}
         onclick={() => ui.setActivePanel('story')}
         title="Story"
       >
@@ -91,8 +91,8 @@
       </button>
 
       <button
-        class="btn-ghost flex items-center gap-1 sm:gap-2 rounded-lg px-2 sm:px-3 py-1.5 min-h-[40px]"
-        class:bg-surface-700={ui.activePanel === 'lorebook'}
+        class="btn-ghost nav-tab flex items-center gap-1 sm:gap-2 rounded-lg px-2 sm:px-3 py-1.5 min-h-[40px]"
+        class:nav-tab-active={ui.activePanel === 'lorebook'}
         onclick={() => ui.setActivePanel('lorebook')}
         title="Lorebook"
       >
@@ -101,8 +101,8 @@
       </button>
 
       <button
-        class="btn-ghost flex items-center gap-1 sm:gap-2 rounded-lg px-2 sm:px-3 py-1.5 min-h-[40px]"
-        class:bg-surface-700={ui.activePanel === 'memory'}
+        class="btn-ghost nav-tab flex items-center gap-1 sm:gap-2 rounded-lg px-2 sm:px-3 py-1.5 min-h-[40px]"
+        class:nav-tab-active={ui.activePanel === 'memory'}
         onclick={() => ui.setActivePanel('memory')}
         title="Memory"
       >

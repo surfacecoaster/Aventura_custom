@@ -110,7 +110,7 @@
     </div>
   {/if}
 
-  <div class="flex flex-1 min-h-0">
+  <div class="flex flex-1 min-h-0 relative">
     <!-- List panel -->
     {#if showList}
     <div
@@ -125,7 +125,7 @@
   {#if showDetail}
     <div
       class="flex-1 flex flex-col
-        {isMobile ? 'w-full absolute inset-0 bg-surface-900 z-10' : ''}"
+        {isMobile ? 'w-full absolute top-0 left-0 right-0 bottom-0 bg-surface-900 z-10' : ''}"
     >
       {#if creatingNew}
         <!-- New entry form -->
@@ -133,7 +133,7 @@
           <div class="flex items-center gap-3 p-4 border-b border-surface-700">
             {#if isMobile}
               <button
-                class="btn-ghost p-2 rounded-lg -ml-2"
+                class="btn-ghost rounded-lg p-2 min-h-[44px] min-w-[44px] flex items-center justify-center -ml-2"
                 onclick={handleMobileBack}
               >
                 <ArrowLeft class="h-5 w-5" />
@@ -144,7 +144,7 @@
             </div>
             <h2 class="font-semibold text-surface-100">New Entry</h2>
           </div>
-          <div class="flex-1 overflow-y-auto p-4">
+          <div class="flex-1 overflow-y-auto p-4 pb-safe">
             <LorebookEntryForm
               onSave={handleSaveNew}
               onCancel={handleCancelNew}

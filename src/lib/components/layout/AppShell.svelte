@@ -11,6 +11,7 @@
   import SettingsModal from '$lib/components/settings/SettingsModal.svelte';
   import LorebookDebugPanel from '$lib/components/debug/LorebookDebugPanel.svelte';
   import DebugLogModal from '$lib/components/debug/DebugLogModal.svelte';
+  import SyncModal from '$lib/components/sync/SyncModal.svelte';
   import { swipe } from '$lib/utils/swipe';
   import { Bug } from 'lucide-svelte';
   import type { Snippet } from 'svelte';
@@ -89,10 +90,13 @@
   <!-- Debug Log Modal -->
   <DebugLogModal />
 
+  <!-- Sync Modal -->
+  <SyncModal />
+
   <!-- Floating Debug Button (when debug mode enabled) -->
   {#if settings.uiSettings.debugMode}
     <button
-      class="fixed bottom-20 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-amber-600 text-white shadow-lg hover:bg-amber-500 transition-colors sm:bottom-4"
+      class="fixed bottom-safe-20 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-amber-600 text-white shadow-lg hover:bg-amber-500 transition-colors sm:bottom-4"
       onclick={() => ui.toggleDebugModal()}
       title="View API Debug Logs"
     >
