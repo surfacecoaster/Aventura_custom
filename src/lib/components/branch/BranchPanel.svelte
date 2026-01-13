@@ -180,12 +180,12 @@
   <div class="flex items-center justify-between">
     <h3 class="font-medium text-surface-200">Branches</h3>
     <button
-      class="btn-ghost rounded p-1.5 {canCreateBranch ? 'text-surface-400 hover:text-surface-200' : 'text-surface-600 cursor-not-allowed'}"
+      class="btn-ghost rounded p-2 min-h-[40px] min-w-[40px] sm:min-h-0 sm:min-w-0 sm:p-1.5 flex items-center justify-center {canCreateBranch ? 'text-surface-400 hover:text-surface-200' : 'text-surface-600 cursor-not-allowed'}"
       onclick={() => canCreateBranch && (showCreateForm = !showCreateForm)}
       disabled={!canCreateBranch}
       title={canCreateBranch ? 'Create new branch from latest checkpoint' : 'No checkpoints available - checkpoints are created at chapter boundaries'}
     >
-      <Plus class="h-4 w-4" />
+      <Plus class="h-5 w-5 sm:h-4 sm:w-4" />
     </button>
   </div>
 
@@ -204,13 +204,13 @@
       />
       <div class="flex justify-end gap-2">
         <button
-          class="btn-ghost rounded px-2 py-1 text-xs"
+          class="btn-ghost rounded px-3 py-2 min-h-[40px] sm:min-h-0 sm:px-2 sm:py-1 text-sm sm:text-xs"
           onclick={() => { showCreateForm = false; newBranchName = ''; }}
         >
           Cancel
         </button>
         <button
-          class="btn-primary rounded px-2 py-1 text-xs"
+          class="btn-primary rounded px-3 py-2 min-h-[40px] sm:min-h-0 sm:px-2 sm:py-1 text-sm sm:text-xs"
           onclick={handleCreateBranch}
           disabled={!newBranchName.trim()}
         >
@@ -233,17 +233,17 @@
       >
         {#if children.length > 0}
           <button
-            class="p-0.5 text-surface-400 hover:text-surface-200"
+            class="p-1 min-h-[32px] min-w-[32px] sm:min-h-0 sm:min-w-0 sm:p-0.5 flex items-center justify-center text-surface-400 hover:text-surface-200"
             onclick={(e) => { e.stopPropagation(); toggleExpand(branch.id); }}
           >
             {#if isExpanded(branch.id)}
-              <ChevronDown class="h-3.5 w-3.5" />
+              <ChevronDown class="h-4 w-4 sm:h-3.5 sm:w-3.5" />
             {:else}
-              <ChevronRight class="h-3.5 w-3.5" />
+              <ChevronRight class="h-4 w-4 sm:h-3.5 sm:w-3.5" />
             {/if}
           </button>
         {:else}
-          <span class="w-5"></span>
+          <span class="w-8 sm:w-5"></span>
         {/if}
         <GitBranch class="h-4 w-4 text-surface-400" />
 
@@ -260,16 +260,16 @@
             }}
           />
           <button
-            class="p-0.5 text-green-400 hover:text-green-300"
+            class="p-1 min-h-[32px] min-w-[32px] sm:min-h-0 sm:min-w-0 sm:p-0.5 flex items-center justify-center text-green-400 hover:text-green-300"
             onclick={(e) => { e.stopPropagation(); confirmRename(); }}
           >
-            <Check class="h-3.5 w-3.5" />
+            <Check class="h-4 w-4 sm:h-3.5 sm:w-3.5" />
           </button>
           <button
-            class="p-0.5 text-surface-400 hover:text-surface-200"
+            class="p-1 min-h-[32px] min-w-[32px] sm:min-h-0 sm:min-w-0 sm:p-0.5 flex items-center justify-center text-surface-400 hover:text-surface-200"
             onclick={(e) => { e.stopPropagation(); cancelRename(); }}
           >
-            <X class="h-3.5 w-3.5" />
+            <X class="h-4 w-4 sm:h-3.5 sm:w-3.5" />
           </button>
         {:else}
           <span class="flex-1 text-sm text-surface-200 truncate">{branch.name}</span>
@@ -278,19 +278,19 @@
             <span class="h-2 w-2 rounded-full bg-accent-500" title="Current branch"></span>
           {/if}
           <button
-            class="p-0.5 text-surface-500 hover:text-surface-200 opacity-0 group-hover:opacity-100"
+            class="p-1 min-h-[32px] min-w-[32px] sm:min-h-0 sm:min-w-0 sm:p-0.5 flex items-center justify-center text-surface-500 hover:text-surface-200 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
             onclick={(e) => { e.stopPropagation(); startRename(branch); }}
             title="Rename"
           >
-            <Edit2 class="h-3 w-3" />
+            <Edit2 class="h-4 w-4 sm:h-3 sm:w-3" />
           </button>
           {#if !isCurrent(branch.id)}
             <button
-              class="p-0.5 text-surface-500 hover:text-red-400 opacity-0 group-hover:opacity-100"
+              class="p-1 min-h-[32px] min-w-[32px] sm:min-h-0 sm:min-w-0 sm:p-0.5 flex items-center justify-center text-surface-500 hover:text-red-400 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
               onclick={(e) => { e.stopPropagation(); handleDeleteBranch(branch.id); }}
               title="Delete"
             >
-              <Trash2 class="h-3 w-3" />
+              <Trash2 class="h-4 w-4 sm:h-3 sm:w-3" />
             </button>
           {/if}
         {/if}
@@ -316,13 +316,13 @@
       onkeydown={(e) => e.key === 'Enter' && handleSwitchBranch(null)}
     >
       <button
-        class="p-0.5 text-surface-400 hover:text-surface-200"
+        class="p-1 min-h-[32px] min-w-[32px] sm:min-h-0 sm:min-w-0 sm:p-0.5 flex items-center justify-center text-surface-400 hover:text-surface-200"
         onclick={(e) => { e.stopPropagation(); toggleExpand('main'); }}
       >
         {#if isExpanded('main')}
-          <ChevronDown class="h-3.5 w-3.5" />
+          <ChevronDown class="h-4 w-4 sm:h-3.5 sm:w-3.5" />
         {:else}
-          <ChevronRight class="h-3.5 w-3.5" />
+          <ChevronRight class="h-4 w-4 sm:h-3.5 sm:w-3.5" />
         {/if}
       </button>
       <GitBranch class="h-4 w-4 text-surface-400" />
