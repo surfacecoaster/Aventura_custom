@@ -841,7 +841,6 @@
             // Store for manual generation if auto-generate is disabled
             lastImageGenContext = imageGenContext;
 
-            // Phase 9.5: Generate images for imageable scenes (background, non-blocking)
             if (settings.systemServicesSettings.imageGeneration.autoGenerate && aiService.isImageGenerationEnabled()) {
               aiService.generateImagesForNarrative(imageGenContext).catch(err => {
                 log('Image generation failed (non-fatal)', err);
