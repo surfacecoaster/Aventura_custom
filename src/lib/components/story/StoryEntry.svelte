@@ -3,7 +3,7 @@
   import { story } from '$lib/stores/story.svelte';
   import { ui } from '$lib/stores/ui.svelte';
   import { settings } from '$lib/stores/settings.svelte';
-  import { User, BookOpen, Info, Pencil, Trash2, Check, X, RefreshCw, RotateCcw, ImageIcon, Loader2, AlertCircle, GitBranch, Bookmark, Volume2 } from 'lucide-svelte';
+  import { User, BookOpen, Info, Pencil, Trash2, Check, X, RefreshCw, RotateCcw, Loader2, GitBranch, Bookmark, Volume2 } from 'lucide-svelte';
   import { parseMarkdown } from '$lib/utils/markdown';
   import { database } from '$lib/services/database';
   import { eventBus, type ImageReadyEvent, type TTSQueuedEvent } from '$lib/services/events';
