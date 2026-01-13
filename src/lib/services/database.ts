@@ -1081,6 +1081,25 @@ class DatabaseService {
     await db.execute('DELETE FROM embedded_images WHERE entry_id = ?', [entryId]);
   }
 
+  /**
+   * Clean up orphaned embedded_images that reference non-existent story_entries.
+   * This can happen if data was created before foreign key constraints were enforced.
+   * Returns the number of orphaned records deleted.
+   */
+  async cleanupOrphanedEmbeddedImages(): Promise<number> {
+    const db = await this.getDb();
+    // Find and delete embedded_images where the referenced entry_id doesn't exist
+    const result = await db.execute(
+      `DELETE FROM embedded_images
+       WHERE entry_id NOT IN (SELECT id FROM story_entries)`
+    );
+    const deleted = result.rowsAffected ?? 0;
+    if (deleted > 0) {
+      console.log(`[Database] Cleaned up ${deleted} orphaned embedded_images`);
+    }
+    return deleted;
+  }
+
   private mapEmbeddedImage(row: any): EmbeddedImage {
     return {
       id: row.id,

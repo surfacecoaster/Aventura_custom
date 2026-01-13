@@ -356,6 +356,10 @@ class StoryStore {
       throw new Error(`Story not found: ${storyId}`);
     }
 
+    // Clean up any orphaned embedded_images before loading
+    // (fixes FK constraint issues from older data)
+    await database.cleanupOrphanedEmbeddedImages();
+
     this.currentStory = story;
 
     // Load all related data in parallel
@@ -694,6 +698,12 @@ class StoryStore {
         await database.deleteChapter(chapter.id);
       }
       this.chapters = this.chapters.filter(ch => !chaptersToDelete.some(d => d.id === ch.id));
+    }
+
+    // Delete embedded images for entries being deleted
+    // (explicit deletion to ensure cleanup even if CASCADE isn't working)
+    for (const entry of entriesToDelete) {
+      await database.deleteEmbeddedImagesForEntry(entry.id);
     }
 
     // Now delete entries from database
