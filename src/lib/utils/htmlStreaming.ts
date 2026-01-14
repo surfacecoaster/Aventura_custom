@@ -65,14 +65,24 @@ export class StreamingHtmlRenderer {
       return styleOpenIndex;
     }
 
-    // Find last complete tag (last '>' not inside an incomplete tag)
+    // Find last complete tag (last '>' not inside an incomplete tag or comment)
     let lastSafeIndex = 0;
     let inTag = false;
     let inString = false;
     let stringChar = '';
+    let inComment = false;
 
     for (let i = 0; i < html.length; i++) {
       const char = html[i];
+
+      // Handle comments - ignore everything inside
+      if (inComment) {
+        if (char === '>' && i >= 2 && html[i - 1] === '-' && html[i - 2] === '-') {
+          inComment = false;
+          lastSafeIndex = i + 1;
+        }
+        continue;
+      }
 
       // Track string boundaries within tags
       if (inTag && !inString && (char === '"' || char === "'")) {
@@ -86,17 +96,25 @@ export class StreamingHtmlRenderer {
       // Track tag boundaries
       if (!inString) {
         if (char === '<') {
-          inTag = true;
+          // Check for comment start
+          if (!inTag && html.startsWith('<!--', i)) {
+            inComment = true;
+          } else {
+            inTag = true;
+          }
         } else if (char === '>') {
-          inTag = false;
-          lastSafeIndex = i + 1;
+          if (inTag) {
+            inTag = false;
+            lastSafeIndex = i + 1;
+          }
         }
       }
     }
 
-    // If we're currently inside a tag, don't include it
-    return inTag ? lastSafeIndex : html.length;
+    // If we're currently inside a tag or comment, don't include it
+    return (inTag || inComment) ? lastSafeIndex : html.length;
   }
+
 
   private scopeCss(html: string): string {
     // Find all <style>...</style> blocks and prefix selectors

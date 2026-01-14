@@ -2051,18 +2051,7 @@ body {
 }
 
 /* Reset heading margins */
-.prose-content.visual-prose-container .visual-prose-entry h1,
-.prose-content.visual-prose-container .visual-prose-entry h2,
-.prose-content.visual-prose-container .visual-prose-entry h3,
-.prose-content.visual-prose-container .visual-prose-entry h4,
-.prose-content.visual-prose-container .visual-prose-entry h5,
-.prose-content.visual-prose-container .visual-prose-entry h6,
-.visual-prose-container .visual-prose-entry h1,
-.visual-prose-container .visual-prose-entry h2,
-.visual-prose-container .visual-prose-entry h3,
-.visual-prose-container .visual-prose-entry h4,
-.visual-prose-container .visual-prose-entry h5,
-.visual-prose-container .visual-prose-entry h6 {
+:is(.prose-content.visual-prose-container, .visual-prose-container) .visual-prose-entry :is(h1, h2, h3, h4, h5, h6) {
   margin-top: 0;
   margin-bottom: 0;
   color: inherit;
